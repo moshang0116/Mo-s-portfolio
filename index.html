@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const currentHour = new Date().getHours();
+            // 判斷條件：1. 使用者紀錄是黑夜 2. 第一次進來且系統本身是深色 3. 第一次進來且現在是晚上 (18點到隔天6點)
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isNightTime = currentHour >= 18 || currentHour < 6;
+
+            if (savedTheme === 'dark' || (!savedTheme && (prefersDark || isNightTime))) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                // 如果是第一次進來因時間或系統自動判斷為黑夜，幫她順手寫入記憶，防止等一下換頁穿幫
+                if (!savedTheme) localStorage.setItem('theme', 'dark');
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>「 鏡界線 ｜ Borderline 」</title>
@@ -189,7 +204,7 @@
     height: auto !important;      /* ➡️ 關鍵：解除固定高度，讓卡片隨字數自動變長 */
     min-height: 100vh;            /* 確保卡片至少有一個螢幕的高度，保持美觀 */
     padding-top: 70px !important;  /* 頂部留白，解決往上箭頭卡字 */
-    padding-bottom: 80px !important; /* 底部留白，解決往下箭頭卡字 */
+    padding-bottom: 50px !important; /* 底部留白，解決往下箭頭卡字 */
     position: relative;
 }
 
