@@ -232,25 +232,6 @@
     padding-top: 2px !important;
     padding-bottom: 2px !important;
 }
-/* 📱 專屬手機與行動裝置的修正（電腦版完全不受影響） */
-@media (max-width: 991.98px) {
-    /* 修正第一個問題：讓首頁主標題字體在手機上更適中 */
-    h1, .display-4 {
-        font-size: 2rem !important; /* 可依你的主標題標籤調整 */
-    }
-    h2, .glass-card h2 {
-        font-size: 1.6rem !important;
-    }
-    
-    /* 修正第二個問題：增加向下按鈕與上方創作理念字卡之間的間距，防止重疊卡住 */
-    /* 註：請檢查你首頁向下按鈕的 class，如果是用 Bootstrap，可以改為下方對應的控制 */
-    .block-top-arrow, 
-    a[href*="#"], 
-    .btn-reselect {
-        margin-top: 25px !important; 
-        display: inline-block;
-    }
-}
     </style>
 </head>
 <body>
