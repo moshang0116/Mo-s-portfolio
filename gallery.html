@@ -19,6 +19,14 @@
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     
     <style>
+        /* 放在 gallery.html <style> 的最上面第一行 */
+html, body {
+    background: #ffeef8 !important; /* 藝廊預設白天底色 */
+    background-image: var(--bg-gradient) !important;
+}
+html[data-theme="dark"], html[data-theme="dark"] body {
+    background: #121214 !important;
+}
         /* ==================== 1. 核心全域與主題動態背景 ==================== */
         :root {
             --bg-gradient: linear-gradient(135deg, #ffeef8 0%, #e2e8f0 100%); /* 櫻粉白天 */
@@ -232,6 +240,17 @@
         border-radius: 12px;
         margin-top: 10px;
         border: 1px solid var(--card-border);
+    }
+}
+    /* 提升導覽列層級（上一關加的） */
+    .navbar-custom {
+        z-index: 9999 !important;
+    }
+
+    /* 💡 新增：強制逼迫手機啟用顯示卡加速，消除毛玻璃特效造成的頁面跳轉閃白 */
+    .glass-card, .portfolio-item-wrap, .main-panel {
+        will-change: transform, opacity;
+        transform: translate3d(0, 0, 0);
     }
 }
     </style>
