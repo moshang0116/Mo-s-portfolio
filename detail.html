@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作品詳情 ｜ Detail</title>
+
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* 一致的玻璃擬物化主題背景 */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #ffeef8 0%, #e2e8f0 100%);
+            --text-color: #2d3748;
+            --card-bg: rgba(255, 255, 255, 0.5);
+            --card-border: rgba(255, 255, 255, 0.7);
+            --accent-color: #b48a8a; 
+        }
+
+        /* ⚡ 修正：同步將 data-theme 綁定在 html 根節點上確保防閃生效 */
+        html[data-theme="dark"], body[data-theme="dark"] {
+            --bg-gradient: linear-gradient(135deg, #0b0f19 0%, #1a103c 100%);
+            --text-color: #f8fafc;
+            --card-bg: rgba(13, 17, 30, 0.6);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #6366f1; 
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh;
+            transition: background 0.5s ease, color 0.5s ease;
+        }
+
+        .navbar-custom {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(16px) saturate(120%);
+            -webkit-backdrop-filter: blur(16px) saturate(120%);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        }
+
+        /* 大圖展示框架 */
+        .main-img-container {
+            width: 100%;
+            height: 400px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            background: rgba(0,0,0,0.02);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .detail-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.25s ease;
+        }
+
+        /* 縮圖展示橫列 */
+        .thumb-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .thumb-img {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            opacity: 0.6;
+        }
+        .thumb-img:hover {
+            opacity: 0.9;
+        }
+        .thumb-img.active {
+            border-color: var(--accent-color);
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: var(--accent-color);
+            font-size: 1.05rem;
+            display: inline-block;
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-custom fixed-top px-3">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-reset" href="index.html">CREATIVE SPACE</a>
+            <div class="ms-auto">
+                <button class="btn btn-sm btn-outline-secondary rounded-circle" id="themeToggle" style="width: 38px; height: 38px;">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container style-container" style="padding-top: 120px; padding-bottom: 60px;">
+        
+        <div class="mb-4">
+            <button onclick="goBackToSubject()" class="btn btn-sm px-3 py-2 btn-outline-secondary rounded-pill fw-bold">
+                <i class="fas fa-arrow-left me-2"></i>返回作品藝廊
+            </button>
+        </div>
+
+        <div class="glass-card p-4 p-md-5">
+            <div class="row g-5">
+                
+                <div class="col-lg-6">
+                    <div class="main-img-container">
+                        <img id="detailImage" src="" alt="作品圖片" class="detail-img">
+                    </div>
+                    <div id="thumbList" class="thumb-container"></div>
+                </div>
+
+                <div class="col-lg-6 d-flex flex-column justify-content-center">
+                    
+                    <h2 id="detailTitle" class="fw-bold mb-2">作品名稱載入中...</h2>
+                    <div class="mb-4">
+                        <span id="detailCategory" class="badge px-3 py-2 rounded-pill text-white" style="background: var(--accent-color);">科目別</span>
+                    </div>
+                    
+                    <hr class="opacity-10 my-4">
+
+                    <div class="mb-3">
+                        <p class="info-label"><i class="fas fa-lightbulb me-2"></i>作品理念</p>
+                        <p id="detailConcept" class="opacity-90 ps-2" style="line-height: 1.7; white-space: pre-line;">理念內文載入中...</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <span class="info-label"><i class="fas fa-hammer me-2"></i>作品材質</span>
+                        <span id="detailMaterial" class="opacity-90 ps-2">材質載入中...</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <span class="info-label"><i class="fas fa-calendar-alt me-2"></i>創作日期</span>
+                        <span id="detailYear" class="opacity-90 ps-2">日期載入中...</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentSubjectId = '';
+
+        // 全科目相片資料庫配置區
+        const imageDatabase = {
+            'cg-1': [
+                'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=700&q=80',
+                'https://images.unsplash.com/photo-1618005198143-e5283b519a7f?auto=format&fit=crop&w=700&q=80',
+                'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?auto=format&fit=crop&w=700&q=80'
+            ],
+            'color-1': [
+                'color/008.jpg',
+                'color/009.jpg',
+                'color/010.jpg',
+                'color/011.jpg',
+                'color/012.jpg',
+                'color/013.jpg',
+                'color/014.jpg',
+                'color/015.jpg',
+                'color/016.jpg'
+            ],
+            'cad-1': [
+                'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=700&q=80',
+                'https://images.unsplash.com/photo-1537462715879-360eeb61a0bc?auto=format&fit=crop&w=700&q=80'
+            ],
+            'photo-1': [
+                'photography/1-A-1.jpg',
+                'photography/1-A-2.jpg',
+                'photography/1-A-3.jpg',
+                'photography/1-A-4.jpg',
+                'photography/1-B-1.jpg',
+                'photography/1-B-2.jpg'
+            ],
+            'photo-2': [
+                'photography/2-A-1.jpg',
+                'photography/2-A-2.jpg',
+                'photography/2-B-1.jpg',
+                'photography/2-B-2.jpg',
+                'photography/2-C-1.jpg'
+            ],
+            'photo-3': [
+                'photography/3-A-1.jpg',
+                'photography/3-A-2.jpg',
+                'photography/3-B-1.jpg',
+                'photography/3-B-2.jpg'
+            ],
+            'photo-4': [
+                'photography/4-A-1.jpg',
+                'photography/4-A-2.jpg',
+                'photography/4-B-1.jpg',
+                'photography/4-B-2.jpg',
+                'photography/4-C-1.jpg',
+                'photography/4-C-2.jpg'
+            ],
+            'photo-5': [
+                'photography/5-A-1.jpg',
+                'photography/5-A-1-LRC.jpg',
+                'photography/5-A-2.jpg',
+                'photography/5-A-2-LRC.jpg',
+                'photography/5-B-1.jpg',
+                'photography/5-B-1-LRC.jpg',
+                'photography/5-B-2.jpg',
+                'photography/5-B-2-LRC.jpg',
+                'photography/5-C-1.jpg',
+                'photography/5-C-1-LRC.jpg',
+                'photography/5-C-2.jpg',
+                'photography/5-C-2-LRC.jpg'
+            ],
+             'photo-6': [
+                'photography/6-A-1.jpg',
+                'photography/6-A-1-LRC.jpg',
+                'photography/6-A-2.jpg',
+                'photography/6-A-2-LRC.jpg',
+                'photography/6-B-1.jpg',
+                'photography/6-B-1-LRC.jpg',
+                'photography/6-B-2.jpg',
+                'photography/6-B-2-LRC.jpg',
+                'photography/6-C-1.jpg',
+                'photography/6-C-1-LRC.jpg',
+                'photography/6-C-2.jpg',
+                'photography/6-C-2-LRC.jpg'
+            ],
+            'photo-7': [
+                'photography/7-A-1.jpg',
+                'photography/7-A-1-LRC.jpg',
+                'photography/7-A-2.jpg',
+                'photography/7-A-2-LRC.jpg',
+                'photography/7-B-1.jpg',
+                'photography/7-B-1-LRC.jpg',
+                'photography/7-B-2.jpg',
+                'photography/7-B-2-LRC.jpg',
+                'photography/7-C-1.jpg',
+                'photography/7-C-1-LRC.jpg',
+                'photography/7-C-2.jpg',
+                'photography/7-C-2-LRC.jpg'
+            ],
+            'sketch-1': [
+                'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=700&q=80',
+                'https://images.unsplash.com/photo-1576016770956-debb63d900ef?auto=format&fit=crop&w=700&q=80'
+            ],
+            'method-1': [
+                'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=700&q=80',
+                'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=700&q=80'
+            ],
+            'basic-1': [
+                'basic/007.jpg'
+            ],
+            'basic-2': [
+                'basic/009.jpg',
+                'basic/010.jpg',
+                'basic/011.jpg'
+            ],
+            'basic-3': [
+                'basic/015.jpg',
+                'basic/012.jpg',
+                'basic/013.jpg'
+            ],
+            'metal-1': [
+                'metal/009.jpg',
+                'metal/010.jpg'
+            ],
+             'metal-2': [
+                'metal/014.jpg',
+                'metal/015.jpg'
+            ],
+             'metal-3': [
+                'metal/002.jpg',
+                'metal/003.jpg'
+            ],
+            'metal-4': [
+                'metal/012.jpg',
+                'metal/013.jpg'
+            ],
+            'metal-5': [
+                'metal/006.jpg',
+                'metal/007.jpg',
+                'metal/008.jpg'
+            ],
+            'metal-6': [
+                'metal/004.jpg',
+                'metal/005.jpg'
+            ],
+            'metal-7': [
+                'metal/016.jpg',
+                'metal/023.jpg'
+            ],
+            'metal-8': [
+                'metal/017.jpg'
+            ],
+            'metal-9': [
+                'metal/018.jpg',
+                'metal/019.jpg',
+                'metal/022.jpg'
+            ],
+             'metal-10': [
+                'metal/020.jpg',
+                'metal/021.jpg'
+            ],
+            'model-1': [
+                'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=700&q=80',
+                'https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=700&q=80',
+                'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=700&q=80'
+            ],
+            'wood-1': [
+                'wood/004.jpg',
+                'wood/002.jpg',
+                'wood/003.png'
+            ],
+            'wood-2': [
+                'wood/005.jpg',
+                'wood/006.png'
+            ],
+            'wood-3': [
+                'wood/010.png',
+                'wood/011.png',
+                'wood/012.png',
+                'wood/013.png',
+                'wood/016.jpg',
+                'wood/017.jpg'
+            ],
+            'wood-4': [
+                'wood/014.png',
+                'wood/015.png'
+            ],
+            'product-1': [
+                'product/005.jpg',
+                'product/003.jpg',
+                'product/004.jpg',
+                'product/002.jpg',
+                'product/001.jpg'
+            ],
+            'product-2': [
+                'product/006.jpg',
+                'product/007.jpg',
+                'product/008.jpg',
+                'product/013.jpg',
+                'product/014.jpg',
+                'product/023.jpg',
+                'product/021.jpg'
+            ],
+            'product-3': [
+                'product/010.jpg',
+                'product/011.jpg',
+                'product/025.jpg'
+            ],
+            'product-4': [
+                'product/012.jpg',
+                'product/024.jpg'
+            ],
+            'product-5': [
+                'product/009.jpg',
+                'product/015.jpg',
+                'product/016.jpg',
+                'product/022.jpg'
+            ],
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            
+            const title = params.get('title') || '未命名作品';
+            const category = params.get('category') || '未分類';
+            const concept = params.get('concept') || '暫無提供作品理念說明。';
+            const material = params.get('material') || '複合媒材';
+            const year = params.get('year') || '2026';
+            const id = params.get('id');
+
+            if (id && id.includes('-')) {
+                currentSubjectId = id.split('-')[0];
+            }
+
+            document.getElementById('detailTitle').innerText = title;
+            document.getElementById('detailCategory').innerText = category;
+            document.getElementById('detailConcept').innerText = concept;
+            document.getElementById('detailMaterial').innerText = material;
+            document.getElementById('detailYear').innerText = year ;
+
+            const mainImg = document.getElementById('detailImage');
+            const thumbList = document.getElementById('thumbList');
+            const images = imageDatabase[id] || [];
+
+            if (images.length > 0) {
+                mainImg.src = images[0];
+
+                if (images.length > 1) {
+                    images.forEach((imgUrl, index) => {
+                        const thumb = document.createElement('img');
+                        thumb.src = imgUrl;
+                        thumb.classList.add('thumb-img');
+                        if (index === 0) thumb.classList.add('active');
+
+                        thumb.addEventListener('click', () => {
+                            mainImg.style.opacity = '0.3';
+                            setTimeout(() => {
+                                mainImg.src = imgUrl;
+                                mainImg.style.opacity = '1';
+                            }, 150);
+
+                            document.querySelectorAll('.thumb-img').forEach(t => t.classList.remove('active'));
+                            thumb.classList.add('active');
+                        });
+
+                        thumbList.appendChild(thumb);
+                    });
+                }
+            } else {
+                mainImg.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=700&q=80';
+            }
+        });
+
+        function goBackToSubject() {
+            if (currentSubjectId) {
+                window.location.href = `gallery.html?activeSubject=${currentSubjectId}`;
+            } else {
+                window.location.href = 'gallery.html';
+            }
+        }
+
+        // 💡 修正後的主題切換邏輯
+        const themeToggle = document.getElementById('themeToggle');
+        const applyTheme = (theme) => {
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.body.setAttribute('data-theme', 'dark');
+                if(themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                document.body.removeAttribute('data-theme');
+                if(themeToggle) themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        };
+
+        const currentSavedTheme = localStorage.getItem('theme') || 'light';
+        applyTheme(currentSavedTheme);
+
+        if(themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                let theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                applyTheme(theme);
+                localStorage.setItem('theme', theme);
+            });
+        }
+    </script>
+</body>
+<div id="pureLightbox" onclick="this.style.display='none'" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 999999; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(10px);">
+    <span style="position: absolute; top: 20px; right: 30px; color: #fff; font-size: 50px; font-weight: bold;">&times;</span>
+    <img id="pureLightboxImg" src="" style="max-width: 95%; max-height: 90vh; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.8);">
+</div>
+
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        // 設定一秒鐘地毯式搜尋，等網頁所有圖片和背景都載入完畢
+        setTimeout(() => {
+            // 抓取網頁上可能用來當大圖的所有常見殼子（包含你的 main-image）
+            const allPossibleBlocks = document.querySelectorAll('#main-image, .product-image, .main-product-img, .product-image-container');
+            
+            allPossibleBlocks.forEach(block => {
+                block.style.cursor = 'zoom-in'; // 讓滑鼠移過去強制變成放大鏡
+                
+                block.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    let finalSrc = "";
+                    
+                    // 偵測法 A：如果它是用背景圖 style="background-image: url(...)"
+                    let bg = window.getComputedStyle(this).backgroundImage;
+                    if (bg && bg !== 'none') {
+                        finalSrc = bg.replace(/url\(['"]?(.*?)['"]?\)/i, '$1');
+                    }
+                    
+                    // 偵測法 B：如果它肚子裡面藏有 <img> 標籤
+                    let innerImg = this.querySelector('img');
+                    if (innerImg) {
+                        finalSrc = innerImg.src;
+                    }
+                    
+                    // 如果成功抓到任何圖片網址，就直接塞進去強行打開！
+                    if (finalSrc && finalSrc !== window.location.href) {
+                        const lightbox = document.getElementById('pureLightbox');
+                        const lightboxImg = document.getElementById('pureLightboxImg');
+                        lightboxImg.src = finalSrc;
+                        lightbox.style.display = 'flex';
+                    }
+                });
+            });
+        }, 1000); // 延遲 1 秒，保證安全無誤
+    });
+</script>
+</body>
+<div id="pureLightbox" onclick="this.style.display='none'" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 999999; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(10px);">
+    <span style="position: absolute; top: 20px; right: 30px; color: #fff; font-size: 50px; font-weight: bold;">&times;</span>
+    <img id="pureLightboxImg" src="" style="max-width: 95%; max-height: 90vh; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.8);">
+</div>
+
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        // 🎯 核心修正：拿掉 300 毫秒的延遲，改成 0，讓提示字秒開、不等待！
+        setTimeout(() => {
+            // 鎖定作品大圖 id="detailImage"
+            const mainImg = document.getElementById('detailImage');
+            if (mainImg) {
+                mainImg.style.cursor = 'zoom-in';
+                
+                // 💡 建立一個漂亮的提示小標籤
+                const hintDiv = document.createElement('div');
+                hintDiv.className = 'text-center mb-1'; 
+                
+                // 調校了內襯、去掉了導致間距過大的 margin-top
+                hintDiv.innerHTML = `
+                    <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary px-3 py-1.5" style="font-size: 0.82rem; letter-spacing: 1px; border: 1px solid rgba(0,0,0,0.03); color: var(--text-color) !important; display: inline-block;">
+                        <i class="fas fa-search-plus me-1"></i> 點擊下方圖片可放大觀看
+                    </span>
+                `;
+                
+                // 找到大圖的外殼框架，並把提示字塞到外殼的正上方
+                const imgContainer = mainImg.closest('.main-img-container') || mainImg;
+                imgContainer.parentNode.insertBefore(hintDiv, imgContainer);
+                
+                mainImg.addEventListener('click', function(e) {
+                    const lightbox = document.getElementById('pureLightbox');
+                    const lightboxImg = document.getElementById('pureLightboxImg');
+                    lightboxImg.src = this.src;
+                    lightbox.style.display = 'flex';
+                });
+            }
+        }, 0); // ⚡ 這裡改成 0 毫秒了！
+    });
+</script>
+</html>

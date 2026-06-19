@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「 鏡界線 ｜ Borderline 」</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        /* 核心多色動態漸層與主題變數 */
+        :root {
+            /* 白天模式：鮮明春天感（櫻粉、陽光金、青草綠、天空藍） */
+            --bg-gradient: linear-gradient(135deg, #ffe3e3 0%, #fff2cc 40%, #e6fffa 70%, #e0f2fe 100%);
+            --text-color: #4a2c5d;
+            --nav-bg: rgba(255, 255, 255, 0.7);
+            --accent-color: #ff758c;
+            --box-shadow: 0 10px 40px rgba(255, 182, 193, 0.35);
+            --card-bg: rgba(255, 255, 255, 0.55);
+            --btn-text: #ffffff;
+            --aurora-display: none;      /* 隱藏極光 */
+            --meteor-display: none;       /* 隱藏流星 */
+            --petal-display: block;       /* 顯示花瓣 */
+        }
+        [data-theme="dark"] {
+            /* 黑暗模式：星河極光深邃感 */
+            --bg-gradient: linear-gradient(135deg, #05020a 0%, #0c071e 40%, #021125 80%, #051a15 100%);
+            --text-color: #e2e8f0;
+            --nav-bg: rgba(5, 2, 10, 0.75);
+            --accent-color: #00f5d4;
+            --box-shadow: 0 10px 40px rgba(0, 245, 212, 0.15);
+            --card-bg: rgba(12, 7, 30, 0.6);
+            --btn-text: #05020a;
+            --aurora-display: block;     /* 顯示極光 */
+            --meteor-display: block;      /* 顯示流星 */
+            --petal-display: none;        /* 隱藏花瓣 */
+        }
+        
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            font-family: 'Noto Serif TC', serif;
+            transition: background 1s cubic-bezier(0.25, 1, 0.5, 1), color 0.5s ease;
+            overflow-x: hidden;
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        /* ==================== 黑暗模式：星河極光效果 ==================== */
+        .aurora-bg {
+            display: var(--aurora-display);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -2; pointer-events: none; overflow: hidden;
+            opacity: 0.35; mix-blend-mode: screen;
+        }
+        .aurora-bg::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 20%, #7b2cbf 0%, transparent 40%),
+                        radial-gradient(circle at 70% 60%, #00f5d4 0%, transparent 45%),
+                        radial-gradient(circle at 50% 30%, #00b4d8 0%, transparent 40%);
+            filter: blur(80px); animation: auroraShift 25s infinite alternate linear;
+        }
+        @keyframes auroraShift {
+            0% { transform: rotate(0deg) scale(1); }
+            100% { transform: rotate(360deg) scale(1.2); }
+        }
+
+        /* 黑暗模式：流星動畫 */
+        .meteors {
+            display: var(--meteor-display);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none;
+        }
+        .meteor {
+            position: absolute; left: 50%; top: 50%; height: 2px;
+            background: linear-gradient(-45deg, #fff, rgba(0, 245, 212, 0));
+            border-radius: 999px; filter: drop-shadow(0 0 6px #fff);
+            animation: tail 4s ease-in-out infinite, shooting 4s ease-in-out infinite;
+            transform: rotate(-45deg); opacity: 0;
+        }
+        .meteor:nth-child(1) { top: 10%; left: 80%; animation-delay: 0s; }
+        .meteor:nth-child(2) { top: 25%; left: 90%; animation-delay: 1.5s; animation-duration: 3.5s; }
+        .meteor:nth-child(3) { top: 5%; left: 60%; animation-delay: 3s; animation-duration: 4.5s; }
+        @keyframes tail {
+            0% { width: 0; }
+            30% { width: 100px; }
+            100% { width: 0; }
+        }
+        @keyframes shooting {
+            0% { transform: translateX(0) translateY(0) rotate(-45deg); opacity: 0; }
+            10% { opacity: 1; }
+            30% { transform: translateX(-400px) translateY(400px) rotate(-45deg); opacity: 0; }
+            100% { transform: translateX(-400px) translateY(400px) rotate(-45deg); opacity: 0; }
+        }
+
+        /* ==================== 白天模式：浪漫櫻花飄落效果 ==================== */
+        .petals {
+            display: var(--petal-display);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none;
+        }
+        .petal {
+            position: absolute; background: #ffb6c1; border-radius: 150% 0 150% 150%;
+            opacity: 0.7; animation: fadeOut 6s linear infinite, dropDown 6s linear infinite;
+            filter: drop-shadow(0 2px 5px rgba(255,182,193,0.4));
+        }
+        .petal:nth-child(1) { width: 15px; height: 10px; left: 15%; animation-delay: 0s; }
+        .petal:nth-child(2) { width: 12px; height: 8px; left: 45%; animation-delay: 1.5s; animation-duration: 8s; }
+        .petal:nth-child(3) { width: 18px; height: 12px; left: 75%; animation-delay: 3s; animation-duration: 7s; }
+        .petal:nth-child(4) { width: 10px; height: 7px; left: 90%; animation-delay: 4.5s; animation-duration: 5s; }
+        @keyframes dropDown {
+            0% { top: -10%; transform: translateX(0) rotate(0deg); }
+            100% { top: 110%; transform: translateX(-150px) rotate(450deg); }
+        }
+        @keyframes fadeOut {
+            0% { opacity: 0; }
+            10% { opacity: 0.75; }
+            90% { opacity: 0.4; }
+            100% { opacity: 0; }
+        }
+
+        /* ==================== 網頁元件基礎樣式 ==================== */
+        .navbar {
+            background-color: var(--nav-bg);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            transition: background-color 0.5s ease;
+        }
+        .navbar-brand { font-family: 'Cinzel', serif; font-weight: 700; color: var(--text-color) !important; }
+        .nav-link { color: var(--text-color) !important; position: relative; }
+        .nav-link::after {
+            content: ''; position: absolute; width: 0; height: 2px; bottom: 0; left: 0;
+            background-color: var(--accent-color); transition: width 0.3s ease;
+        }
+        .nav-link:hover::after { width: 100%; }
+
+        .theme-toggle-btn { background: none; border: none; color: var(--text-color); font-size: 1.2rem; }
+
+        .hero-section { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .hero-title { font-family: 'Cinzel', serif; font-size: 4rem; font-weight: 700; letter-spacing: 6px; }
+        
+        .main-browse-btn {
+            padding: 14px 40px; font-size: 1.1rem; border-radius: 50px;
+            border: 2px solid var(--text-color); background: transparent;
+            color: var(--text-color); transition: all 0.4s ease; font-weight: bold;
+        }
+        .main-browse-btn:hover { background: var(--text-color); color: var(--btn-text); transform: translateY(-4px); }
+
+        .section-theme { min-height: 100vh; display: flex; align-items: center; padding: 100px 0; }
+        .glass-card {
+            background: var(--card-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 24px; padding: 45px; box-shadow: var(--box-shadow);
+        }
+
+        .portal-zone { background: rgba(255,255,255,0.05); border-radius: 32px; padding: 70px 20px; border: 2px dashed var(--accent-color); backdrop-filter: blur(10px); }
+        .portal-door { font-size: 6rem; color: var(--accent-color); animation: float 3s ease-in-out infinite; filter: drop-shadow(0 0 15px var(--accent-color)); }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
+
+        .back-to-top { position: fixed; bottom: 30px; right: 30px; display: none; z-index: 1000; border-radius: 50%; width: 45px; height: 45px; background-color: var(--text-color); color: var(--btn-text); border: none; }
+
+        /* 往上滑動箭頭的彈跳動畫 */
+        .text-animation-bounce-up {
+            animation: hintBounceUp 2s infinite;
+        }
+        @keyframes hintBounceUp {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(8px); } /* 往下方微調再彈回 */
+            60% { transform: translateY(4px); }
+        }
+
+        /* 往下滑動提示動畫效果 */
+        .scroll-hint-animation {
+            transition: opacity 0.3s ease;
+        }
+        .scroll-hint-animation:hover {
+            opacity: 1 !important;
+        }
+        .text-animation-bounce {
+            animation: hintBounce 2s infinite;
+        }
+        @keyframes hintBounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-8px); }
+            60% { transform: translateY(-4px); }
+        }
+       /* 同時修正頂部與底部卡住的終極設定 */
+#experience {
+    height: auto !important;      /* ➡️ 關鍵：解除固定高度，讓卡片隨字數自動變長 */
+    min-height: 100vh;            /* 確保卡片至少有一個螢幕的高度，保持美觀 */
+    padding-top: 70px !important;  /* 頂部留白，解決往上箭頭卡字 */
+    padding-bottom: 80px !important; /* 底部留白，解決往下箭頭卡字 */
+    position: relative;
+}
+
+/* 如果底部箭頭是用絕對定位放在最底下的，確保它乖乖待在最下緣 */
+#experience .explore-more, 
+#experience [class*="arrow-bottom"] {
+    position: absolute;
+    bottom: 20px;                 /* 讓往下箭頭固定在距離底部 20px 的地方 */
+    left: 50%;
+    transform: translateX(-50%);
+}
+/* ⚡ 精準緊湊特調：縮小引言、大標題與小標題之間的間距 */
+
+/* 1. 壓縮大標題（Experience）上下的空間 */
+#experience h2, 
+#experience .section-title {
+    margin-top: 5px !important;     /* 讓大標題再往上移一點點 */
+    margin-bottom: 15px !important;  /* 縮小大標題與下方引言的距離 */
+}
+
+/* 2. 壓縮引言（除了沉浸於個人創作...）下方的空間 */
+#experience p.lead, 
+#experience .intro-text,
+#experience h2 + p {                /* 針對大標題後緊接的 P 標籤 */
+    margin-top: 0px !important;
+    margin-bottom: 20px !important; /* ➡️ 關鍵：大幅縮小引言跟第一個小標題的距離 */
+}
+
+/* 3. 縮小整體內容清單外層的間距 */
+#experience .timeline-container,
+#experience .experience-list {
+    margin-top: 3px !important;     /* 讓整個經歷列表往上提，貼近引言 */
+}
+
+/* 4. 讓三個小標題（組織領導、多元競賽、自主探究）彼此更緊湊 */
+#experience .timeline-item, 
+#experience .experience-block {
+    margin-top: 0px !important;
+    margin-bottom: 8px !important;  /* 縮小每個經歷區塊之間的上下間距 */
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+    </style>
+</head>
+<body>
+
+    <div class="aurora-bg"></div>
+    <div class="meteors">
+        <div class="meteor"></div>
+        <div class="meteor"></div>
+        <div class="meteor"></div>
+    </div>
+
+    <div class="petals">
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">B O R D E R L I N E</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="#home">首頁</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">關於我</a>
+                        <ul class="dropdown-menu border-0 shadow" style="background: var(--nav-bg); backdrop-filter: blur(10px);">
+                            <li><a class="dropdown-item" href="#about" style="color: var(--text-color)">基本介紹</a></li>
+                            <li><a class="dropdown-item" href="#activities" style="color: var(--text-color)">系學會經歷</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item"><a class="nav-link" href="#portal">探索作品</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contact">聯絡通道</a></li>
+                    <li class="nav-item ms-3">
+                        <button class="theme-toggle-btn" id="themeToggle"><i class="fas fa-moon"></i></button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section id="home" class="hero-section">
+        <div data-aos="fade-up" data-aos-duration="1200">
+            <h1 class="hero-title">鏡界線</h1>
+            <!-- 完美半透明：加入 opacity: 0.75 營造若隱若現的玻璃質感 -->
+            <p class="mb-3 fw-bold" style="font-family: 'Cinzel', 'Noto Serif TC', serif; font-size: 1.75rem; letter-spacing: 6px; opacity: 0.75;">《Mo的作品集》</p>
+            <p class="fs-5 mb-5 opacity-75 fw-bold">在夢幻與神祕的交界處，捕獲靈感的造物。</p>
+            <a href="#about" class="btn main-browse-btn">開啟漫遊廊道 <i class="fas fa-compass ms-2"></i></a>
+        </div>
+    </section>
+
+   <section id="about" class="section-theme d-flex align-items-center position-relative" style="min-height: 100vh; padding: 0;">
+        <div class="container">
+            <div class="row align-items-center justify-content-center">
+                <div class="col-lg-10" data-aos="fade-up">
+                    <div class="glass-card py-5 px-4 position-relative">
+                        <h2 class="fw-bold text-center mb-5"><i class="far fa-user me-2"></i> 關於創作者 ｜ About Me</h2>
+                        
+                        <div class="row g-4 align-items-center">
+                            
+                            <div class="col-md-5 text-center border-end border-md-secondary border-opacity-25" style="border-right-style: dashed !important;">
+                                <div class="mb-4">
+                                    <img src="Me.png" alt="個人肖像" class="img-fluid rounded-circle shadow-lg" style="width: 150px; height: 150px; object-fit: cover; border: 4px solid var(--accent-color);">
+                                </div>
+                                <h4 class="fw-bold mb-4">基本特徵</h4>
+                                <div class="text-start mx-auto px-3" style="max-width: 280px;">
+                                    <div class="border-bottom border-secondary border-opacity-25 py-2 d-flex justify-content-between">
+                                        <span><i class="name-icon fas fa-id-card me-2 opacity-75"></i><strong>姓名</strong></span>
+                                        <span class="opacity-75">吳知縈</span>
+                                    </div>
+                                </div>
+                                <div class="text-start mx-auto px-3" style="max-width: 280px;">
+                                    <div class="border-bottom border-secondary border-opacity-25 py-2 d-flex justify-content-between">
+                                        <span><i class="cake-icon fas fa-cake-candles me-2 opacity-75"></i><strong>誕生日</strong></span>
+                                        <span class="opacity-75">1 月 16 日</span>
+                                    </div>
+                                    <div class="border-bottom border-secondary border-opacity-25 py-2 d-flex justify-content-between">
+                                        <span><i class="star-icon fas fa-wand-magic-sparkles me-2 opacity-75"></i><strong>星座</strong></span>
+                                        <span class="opacity-75">魔羯座</span>
+                                    </div>
+                                    <div class="py-2 d-flex justify-content-between">
+                                        <span><i class="heart-icon fas fa-heart me-2 opacity-75"></i><strong>血型</strong></span>
+                                        <span class="opacity-75">O 型</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-7 px-4">
+                                <h4 class="fw-bold mb-4 text-center text-md-start ps-md-2">專業範疇</h4>
+                                <p class="fs-6 lh-lg mb-4 opacity-90 text-start ps-md-2">
+                                    歡迎光臨。此處記錄了我對設計、工藝與空間物件的探索。將思緒淬鍊成實體，在日常的細微之處捕捉靈感的蹤跡。
+                                </p>
+                                
+                                <div class="text-start ps-md-2">
+                                    <div class="border-bottom border-secondary border-opacity-25 py-3">
+                                        <div class="fw-bold mb-1"><i class="fas fa-palette me-2 text-animation-pulse"></i>核心領域</div>
+                                        <div class="opacity-75 small">基礎視覺 / 創意寫作與手作工藝</div>
+                                    </div>
+                                    <div class="border-bottom border-secondary border-opacity-25 py-3">
+                                        <div class="fw-bold mb-1"><i class="fas fa-hand-holding-heart me-2"></i>專業擅長</div>
+                                        <div class="opacity-75 small">自學與系統化梳理 / 結構與比例 / 視覺與美感微調</div>
+                                    </div>
+                                    <div class="py-3">
+                                        <div class="fw-bold mb-1"><i class="fas fa-compass me-2"></i>創作理念</div>
+                                        <div class="opacity-75 small">以邏輯為骨架，以美學為靈魂。在平面線條與立體結構之間，推開美學與實用的交界線。</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                        </div> </div> </div>
+            </div>
+        </div>
+
+        <div class="position-absolute bottom-0 start-50 translate-middle-x text-center mb-4" style="z-index: 10;">
+            <a href="#experience" class="text-decoration-none text-reset opacity-75 scroll-hint-animation">
+                <span class="d-block small fw-bold mb-1" style="letter-spacing: 2px;">SPECIAL EXPERIENCE</span>
+                <span class="d-block small fw-bold mb-2">檢視特殊經歷</span>
+                <i class="fas fa-chevron-down fs-4 text-animation-bounce"></i>
+            </a>
+        </div>
+    </section>
+
+
+    <section id="experience" class="section-theme d-flex align-items-center position-relative" style="min-height: 100vh; padding: 0;">
+        <div class="position-absolute top-0 start-50 translate-middle-x text-center mt-5 pt-4" style="z-index: 1050;">
+            <a href="#about" class="text-decoration-none text-reset opacity-50 scroll-hint-animation d-inline-block">
+                <i class="fas fa-chevron-up fs-4 text-animation-bounce-up"></i>
+                <span class="d-block small mt-1" style="font-size: 0.7rem; letter-spacing: 1px;">返回基本資料</span>
+            </a>
+        </div>
+
+        <div class="container">
+            <div class="row align-items-center justify-content-center">
+                <div class="col-md-8" data-aos="fade-up">
+                    <div class="glass-card py-5 px-4">
+                        <h2 class="fw-bold mb-4 text-center"><i class="fas fa-star me-2"></i> 特殊經歷 ｜ Experience</h2>
+                        <p class="fs-6 lh-lg mb-5 opacity-90 text-center">
+                            除了沉浸於個人創作，我也熱衷於將邏輯思維與美學涵養，落實於群體領導、多元競賽與跨領域實作之中。
+                        </p>
+                        
+                        <div class="mx-auto px-2" style="max-width: 600px;">
+                            <div class="mb-4 position-relative ps-4 border-start border-2" style="border-color: var(--accent-color) !important;">
+                                <div class="position-absolute" style="left: -7px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent-color);"></div>
+                                <h5 class="fw-bold mb-1 fs-6">組織領導｜系學會核心幹部與班級經歷</h5>
+                                <p class="small opacity-75 mb-1">歷任系學會副會長、活動長及班級學藝、康樂股長。具備卓越的跨部門溝通與跨域協調能力，曾統籌多場大型活動之核心企劃、時程掌控與流程設計，善於引導團隊達成目標。</p>
+                                <span class="badge bg-secondary bg-opacity-25 text-reset p-1 px-2 small" style="font-size: 0.75rem;">團隊協作 / 組織領導 / 活動企劃</span>
+                            </div>
+                            <div class="mb-4 position-relative ps-4 border-start border-2" style="border-color: var(--accent-color) !important;">
+                                <div class="position-absolute" style="left: -7px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent-color);"></div>
+                                <h5 class="fw-bold mb-1 fs-6">多元競賽 ➜ 商業策略與語文美學思辨</h5>
+                                <p class="small opacity-75 mb-1">積極挑戰自我，於商業管理競賽中展現邏輯思維與市場洞察；並於國語演說、演講比賽及創意標語競賽中屢獲佳績，兼具精準的文字渲染力與群眾發言感染力。</p>
+                                <span class="badge bg-secondary bg-opacity-25 text-reset p-1 px-2 small" style="font-size: 0.75rem;">商業策略 / 溝通表達 / 創意行銷</span>
+                            </div>
+                            <div class="position-relative ps-4 border-start border-2" style="border-color: var(--accent-color) !important;">
+                                <div class="position-absolute" style="left: -7px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent-color);"></div>
+                                <h5 class="fw-bold mb-1 fs-6">自主探究 ➜ 資訊科技與程式基礎啟蒙</h5>
+                                <p class="small opacity-75 mb-1">抱持自我挑戰的成長思維，主動規劃學習路徑。目前自學 C++ 基礎語法與 HTML/CSS 網頁配置，透過 Sublime Text 進行代碼實踐，逐步培養嚴謹的運算思維與邏輯基礎。</p>
+                                <span class="badge bg-secondary bg-opacity-25 text-reset p-1 px-2 small" style="font-size: 0.75rem;">自主學習 / 邏輯思維</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="position-absolute bottom-0 start-50 translate-middle-x text-center mb-4" style="z-index: 10;">
+            <a href="#activities" class="text-decoration-none text-reset opacity-75 scroll-hint-animation">
+                <span class="d-block small fw-bold mb-1" style="letter-spacing: 2px;">EXPLORE MORE</span>
+                <span class="d-block small fw-bold mb-2">繼續探索作品</span>
+                <i class="fas fa-chevron-down fs-4 text-animation-bounce"></i>
+            </a>
+        </div>
+    </section>
+
+    <section id="activities" class="section-theme d-flex align-items-center position-relative" style="min-height: 100vh; padding: 0;">
+        
+        <div class="position-absolute top-0 start-50 translate-middle-x text-center mt-5 pt-4" style="z-index: 1050;">
+            <a href="#experience" class="text-decoration-none text-reset opacity-50 scroll-hint-animation d-inline-block">
+                <i class="fas fa-chevron-up fs-4 text-animation-bounce-up"></i>
+                <span class="d-block small mt-1" style="font-size: 0.7rem; letter-spacing: 1px;">返回特殊經歷</span>
+            </a>
+        </div>
+
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-10" data-aos="fade-up">
+                    <div class="glass-card py-5 px-4 text-center">
+                        <h2 class="fw-bold mb-4"><i class="fas fa-users me-2"></i> 組織與系學會經歷 ｜ Activities</h2>
+                        <p class="lh-lg mb-0 mx-auto fw-bold opacity-90 px-3" style="max-width: 700px; font-size: 1.05rem;">
+                            在個人創作之外，團隊協作與組織領導亦是我的熱情所在。擔任系學會核心幹部期間，我統籌主導了「迎新活動」及「聖誕晚會」等大型專案，並手主辦理活動企劃與流程設計。透過跨領域的協調整合，我不僅讓美學思維在群體互動中落地，更在每一次的團隊協作中，吸收到更多元、更具生命力的造物靈感。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="position-absolute bottom-0 start-50 translate-middle-x text-center mb-4" style="z-index: 10;">
+            <a href="#portal" class="text-decoration-none text-reset opacity-75 scroll-hint-animation">
+                <span class="d-block small fw-bold mb-1" style="letter-spacing: 2px;">CREATIVE PORTAL</span>
+                <span class="d-block small fw-bold mb-2">前往探索作品</span>
+                <i class="fas fa-chevron-down fs-4 text-animation-bounce"></i>
+            </a>
+        </div>
+    </section>
+
+    <section id="portal" class="section-theme d-flex align-items-center position-relative" style="min-height: 100vh; padding: 0;">
+        
+        <div class="position-absolute top-0 start-50 translate-middle-x text-center mt-5 pt-4" style="z-index: 1050;">
+            <a href="#activities" class="text-decoration-none text-reset opacity-50 scroll-hint-animation d-inline-block">
+                <i class="fas fa-chevron-up fs-4 text-animation-bounce-up"></i>
+                <span class="d-block small mt-1" style="font-size: 0.7rem; letter-spacing: 1px;">返回活動經歷</span>
+            </a>
+        </div>
+
+        <div class="container text-center">
+            <div class="row justify-content-center">
+                <div class="col-md-8" data-aos="zoom-in">
+                    <div class="portal-zone shadow-sm py-5">
+                        <h2 class="fw-bold mb-3">推開下一道維度</h2>
+                        <p class="mb-5 opacity-75 fw-bold">請打開門，踏入下一個未知的靈感空間...</p>
+                        
+                        <a href="space-choice.html" class="text-decoration-none d-inline-block">
+                            <div class="portal-door mb-4"><i class="fas fa-door-open"></i></div>
+                            <span class="btn main-browse-btn py-2 px-4 fs-6">解鎖下一個空間</span>
+                        </a>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="position-absolute bottom-0 start-50 translate-middle-x text-center mb-4" style="z-index: 10;">
+            <a href="#contact" class="text-decoration-none text-reset opacity-75 scroll-hint-animation">
+                <span class="d-block small fw-bold mb-1" style="letter-spacing: 2px;">CONTACT CHANNEL</span>
+                <span class="d-block small fw-bold mb-2">前往聯絡通道</span>
+                <i class="fas fa-chevron-down fs-4 text-animation-bounce"></i>
+            </a>
+        </div>
+    </section>
+
+        <section id="contact" class="section-theme py-5 position-relative">
+        
+        <div class="position-absolute top-0 start-50 translate-middle-x text-center mt-5 pt-2" style="z-index: 1050;">
+            <a href="#portal" class="text-decoration-none text-reset opacity-50 scroll-hint-animation d-inline-block">
+                <i class="fas fa-chevron-up fs-4 text-animation-bounce-up"></i>
+                <span class="d-block small mt-1" style="font-size: 0.7rem; letter-spacing: 1px;">返回傳送門</span>
+            </a>
+        </div>
+        <div class="container text-center">
+            <div class="row justify-content-center" data-aos="fade-up">
+                <div class="col-md-6">
+                    <h2 class="fw-bold mb-4">聯絡通道</h2>
+                    <p class="mb-5 opacity-75 fw-bold">如果您有任何想法或合作邀約，歡迎跨界捎來訊息。</p>
+                    <div class="d-flex justify-content-center gap-4 fs-3">
+                        <a href="https://www.instagram.com/mo_shang01?igsh=MTluYWp6cHQ4b3l5Mw==" class="text-reset"><i class="fab fa-instagram"></i></a>
+                        <a href="mailto:317121ella@example.com" class="text-reset"><i class="far fa-envelope"></i></a>
+                        <a href="https://www.facebook.com/mo.shang.877025?locale=zh_TW" class="text-reset"><i class="fab fa-facebook"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <button class="back-to-top shadow" id="btnBackToTop"><i class="fas fa-chevron-up"></i></button>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({ duration: 1000, once: false });
+
+        const themeToggle = document.getElementById('themeToggle');
+        const icon = themeToggle.querySelector('i');
+        
+        if(localStorage.getItem('theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            icon.className = 'fas fa-sun';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            if(document.documentElement.getAttribute('data-theme') === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+                icon.className = 'fas fa-moon';
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                icon.className = 'fas fa-sun';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                if(this.getAttribute('href') !== '#') {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        const btnBTT = document.getElementById('btnBackToTop');
+        window.onscroll = function() {
+            if (document.body.scrollTop > 400 || document.documentElement.scrollTop > 400) {
+                btnBTT.style.display = "block";
+            } else {
+                btnBTT.style.display = "none";
+            }
+        };
+        btnBTT.onclick = function() { window.scrollTo({top: 0, behavior: 'smooth'}); };
+    </script>
+</body>
+</html>

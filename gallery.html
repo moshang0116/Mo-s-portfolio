@@ -1,0 +1,2470 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作品藝廊 ｜ Gallery</title>
+    
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <style>
+        /* ==================== 1. 核心全域與主題動態背景 ==================== */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #ffeef8 0%, #e2e8f0 100%); /* 櫻粉白天 */
+            --text-color: #2d3748;
+            --card-bg: rgba(255, 255, 255, 0.5);
+            --card-border: rgba(255, 255, 255, 0.7);
+            --accent-color: #b48a8a; 
+        }
+
+        /* ⚡ 修正：同步將 data-theme 綁定在 html 根節點上確保防閃生效 */
+        html[data-theme="dark"], body[data-theme="dark"] {
+            --bg-gradient: linear-gradient(135deg, #0b0f19 0%, #1a103c 100%); /* 星河黑暗 */
+            --text-color: #f8fafc;
+            --card-bg: rgba(13, 17, 30, 0.6);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #6366f1; 
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh;
+            transition: background 0.5s ease, color 0.5s ease;
+            overflow-x: hidden;
+            margin: 0;
+            position: relative;
+        }
+
+        #effects-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        main {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ==================== 2. 導覽列樣式 ==================== */
+        .navbar-custom {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            z-index: 1060;
+            transition: background 0.5s ease, border 0.5s ease;
+        }
+
+        /* ==================== 3. 玻璃擬物化面板與按鈕 ==================== */
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(16px) saturate(120%);
+            -webkit-backdrop-filter: blur(16px) saturate(120%);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .sub-space-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: inherit;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: block;
+            cursor: pointer;
+        }
+        .sub-space-btn.active, .sub-space-btn:hover {
+            background: var(--accent-color);
+            color: #fff !important;
+            border-color: var(--accent-color);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-reselect:hover {
+            background: var(--accent-color) !important;
+            color: #fff !important;
+            border-style: solid !important;
+            border-color: var(--accent-color) !important;
+            transform: scale(1.03);
+        }
+
+        /* ==================== 4. 作品卡片結構與懸停特效 ==================== */
+        .portfolio-item-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .portfolio-item {
+            transition: all 0.4s ease;
+        }
+        .portfolio-item:hover {
+            transform: translateY(-6px);
+        }
+        .portfolio-img-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            background: rgba(0,0,0,0.05);
+        }
+        .portfolio-img-container img {
+            transition: transform 0.5s ease;
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+        }
+        .portfolio-item-link:hover .portfolio-img-container img {
+            transform: scale(1.08);
+        }
+        
+        /* 篩選機制核心樣式：未選中的區塊隱藏 */
+        .subject-content-block {
+            display: none;
+            padding-top: 20px;
+        }
+        .subject-content-block.active-block {
+            display: block;
+        }
+
+        /* 重選科目箭頭 */
+        .block-top-arrow {
+            display: inline-block;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: arrowBounce 2s infinite;
+            opacity: 0.7;
+            text-decoration: none;
+        }
+        .block-top-arrow:hover {
+            color: var(--accent-color);
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        @keyframes arrowBounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-8px); }
+            60% { transform: translateY(-4px); }
+        }
+
+        /* 右下角懸浮按鈕 */
+        .back-to-top-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: var(--text-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            z-index: 1050;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        .back-to-top-btn.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .back-to-top-btn:hover {
+            background: var(--accent-color);
+            color: #fff;
+            border-color: var(--accent-color);
+            transform: translateY(-5px);
+        }
+        /* 當燈箱隱藏時的過場動畫輔助 */
+#customLightbox.hide-anime {
+    opacity: 0 !important;
+}
+#customLightbox.hide-anime img {
+    transform: scale(0.95) !important;
+}
+    </style>
+</head>
+<body>
+
+    <canvas id="effects-canvas"></canvas>
+
+    <nav class="navbar navbar-expand-lg navbar-custom fixed-top px-3">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-reset" href="index.html">CREATIVE SPACE</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-center gap-2">
+                    <li class="nav-item"><a class="nav-link text-reset" href="index.html">首頁</a></li>
+                    <li class="nav-item"><a class="nav-link text-reset" href="index.html#about">關於我</a></li>
+                    <li class="nav-item"><a class="nav-link text-reset" href="index.html#activities">活動經歷</a></li>
+                    <li class="nav-item"><a class="nav-link text-reset fw-bold" href="gallery.html" style="color: var(--accent-color) !important;">作品藝廊</a></li>
+                    <li class="nav-item"><a class="nav-link text-reset" href="index.html#contact">聯絡通道</a></li>
+                    <li class="nav-item ms-lg-2">
+                        <button class="btn btn-sm btn-outline-secondary rounded-circle" id="themeToggle" style="width: 38px; height: 38px;">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main style="padding-top: 70px;">
+        
+        <div id="top-button-panel" class="container d-flex align-items-center justify-content-center px-3" style="min-height: calc(100vh - 70px); padding-bottom: 2rem;">
+            <div class="glass-card py-5 px-4 w-100 text-center">
+                
+                <h2 class="fw-bold mb-3"><i class="fas fa-images me-2"></i> 靈感維度藝廊 ｜ Gallery</h2>
+                <p class="mb-3 opacity-75 fw-bold">已成功解鎖您所選的造物維度，請點擊下方科目切換作品展示面板...</p>
+                
+                <div class="mb-5">
+                    <a href="space-choice.html" class="btn btn-sm btn-reselect px-3 py-2" style="background: rgba(255, 255, 255, 0.15); color: inherit; border: 1px dashed var(--accent-color); border-radius: 20px; font-weight: bold; font-size: 0.85rem; transition: all 0.3s ease; text-decoration: none; display: inline-block;">
+                        <i class="fas fa-arrows-rotate me-2"></i>切換其他維度 ➔ 返回重選空間
+                    </a>
+                </div>
+                
+                <div class="collapse" id="panel2D">
+                    <div class="p-4 rounded-3 border border-secondary border-opacity-10">
+                        <h5 class="fw-bold mb-4 text-start text-md-center" style="color: var(--accent-color);"><i class="fas fa-wand-magic-sparkles me-2"></i>二維平面範疇 ｜ 視覺與美學思維</h5>
+                        <div class="row g-3 justify-content-center align-items-center">
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <button class="btn sub-space-btn py-2 w-100" onclick="filterSubject('cg')">電腦繪圖</button>
+    </div>
+
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <button class="btn sub-space-btn py-2 w-100" onclick="filterSubject('color')">色彩學</button>
+    </div>
+
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <button class="btn sub-space-btn py-2 w-100" onclick="filterSubject('cad')">電腦輔助設計</button>
+    </div>
+
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <button class="btn sub-space-btn py-2 w-100" onclick="filterSubject('photo')">攝影創作</button>
+    </div>
+
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <button class="btn sub-space-btn py-2 w-100" onclick="filterSubject('sketch')">素描</button>
+    </div>
+
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <button class="btn sub-space-btn py-2 w-100" onclick="filterSubject('method')">設計方法</button>
+    </div>
+</div>
+                    </div>
+                </div>
+
+                <div class="collapse" id="panel3D">
+                    <div class="p-4 rounded-3 border border-secondary border-opacity-10">
+                        <h5 class="fw-bold mb-4 text-start text-md-center" style="color: var(--accent-color);"><i class="fas fa-tools me-2"></i>三維立體範疇 ｜ 空間與工藝造物</h5>
+                        <div class="row g-3 justify-content-center align-items-center">
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <button class="btn sub-space-btn py-2 w-100" onclick="filterSubject('basic')">基礎設計</button>
+    </div>
+
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <button class="btn sub-space-btn py-2 w-100" onclick="filterSubject('metal')">金屬工藝</button>
+    </div>
+
+    <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <button class="btn sub-space-btn py-2 w-100" onclick="filterSubject('model')">模型製作</button>
+    </div>
+
+    <div class="col-9 col-sm-5 col-md-4 col-lg-3">
+        <button class="btn sub-space-btn py-2 w-100" onclick="filterSubject('wood')">木竹藝技法/設計材料加工</button>
+    </div>
+
+    <div class="col-9 col-sm-5 col-md-4 col-lg-3">
+        <button class="btn sub-space-btn py-2 w-100" onclick="filterSubject('product')">創意商品設計/陶瓷基本技法</button>
+    </div>
+</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="container pb-5">
+
+            <div id="block-cg" class="subject-content-block">
+    <div class="text-center mb-4"><a href="javascript:void(0)" class="block-top-arrow" onclick="scrollToButtons()"><i class="fas fa-chevron-circle-up"></i> 重選科目</a></div>
+    <h3 class="fw-bold border-bottom pb-2 mb-4" style="color: var(--accent-color);"><i class="fas fa-palette me-2"></i>電腦繪圖 ｜ 作品展示</h3>
+    
+    <div class="row g-4">
+        
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250314-home.jpg" alt="作品 A">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.3.14</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250321-home-1.jpg" alt="作品 B">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.3.21</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250321-home-2.jpg" alt="作品 C">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.3.21</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250328-home-1.jpg" alt="作品 D">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.3.28</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250328-home-2.jpg" alt="作品 E">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.3.28</p>
+                </div>
+            </div>
+        </div>
+
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250411-home-1.jpg" alt="作品 F">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.4.11</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250411-home-2.jpg" alt="作品 G">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.4.11</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250411-home-3.jpg" alt="作品 H">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.4.11</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250411-home-3-yes.jpg" alt="作品 I">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.4.11</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250418-home-2.jpg" alt="作品 J">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.4.18</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250425-classroom.jpg" alt="作品 K">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.4.25</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250425-home.jpg" alt="作品 L">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.4.25</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250502-home-1.jpg" alt="作品 M">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.5.2</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250502-home-2.jpg" alt="作品 N">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.5.2</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250516-home-1.jpg" alt="作品 O">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.5.16</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250516-home-2.jpg" alt="作品 P">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.5.16</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250523-home-1.jpg" alt="作品 Q">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.5.23</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250523-home-2.jpg" alt="作品 R">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.5.23</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250606-home-1.jpg" alt="作品 S">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.6.6</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250606-home-2.jpg" alt="作品 T">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.6.6</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250606-home-3.jpg" alt="作品 U">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.6.6</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250606-home-4.jpg" alt="作品 V">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.6.6</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250613-home-1.jpg" alt="作品 W">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.6.13</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cg/20250613-home-2.jpg" alt="作品 X">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">數位電繪臨摹</h5>
+                    <p class="small opacity-75 mb-0">2025.6.13</p>
+                </div>
+            </div>
+        </div>
+        </div>
+</div>
+
+            <div id="block-color" class="subject-content-block">
+                <div class="text-center mb-4"><a href="javascript:void(0)" class="block-top-arrow" onclick="scrollToButtons()"><i class="fas fa-chevron-circle-up"></i> 重選科目</a></div>
+                <h3 class="fw-bold border-bottom pb-2 mb-4" style="color: var(--accent-color);"><i class="fas fa-palette me-2"></i>色彩學 ｜ 作品展示</h3>
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=color-1&title=星座戒指&category=色彩學&material=銅線、紙板&year=2024.6.17&concept=我設計的是六個星座的戒指, 每一個戒指都有不同的意義。雖然每一個戒指都很小,但它也許能在你平凡期一身穿搭中添加一種獨有的風格,就像每個人的人生起起伏伏,但是一定會有一個微不足道的事情讓你覺得或許人生並沒有那麼無趣,而這六個戒指都是我用一根銅線所製成,這象徵了每一個人一定會在自己人生的道路上得到一個完美的結局。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="color/016.jpg" alt="色彩學">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">期末作品展出</h5>
+                                <p class="small opacity-75 mb-0">色彩心理學與視覺傳達張力在立體版面上的整合實踐。</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="color/001.jpg" alt="作品 A">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">曼賽爾明度階</h5>
+                    <p class="small opacity-75 mb-0">2024.3.10</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="color/002.jpg" alt="作品 B">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">彩度練習</h5>
+                    <p class="small opacity-75 mb-0">2024.3.2</p>
+                </div>
+            </div>
+        </div>
+ <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="color/003.jpg" alt="作品 C">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">色彩混合</h5>
+                    <p class="small opacity-75 mb-0">2024.3.22</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="color/004.jpg" alt="作品 D">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">抽象構圖</h5>
+                    <p class="small opacity-75 mb-0">2024.3.30</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="color/005.jpg" alt="作品 E">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">伊登十二色相環</h5>
+                    <p class="small opacity-75 mb-0">2024.3.31</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="color/006.jpg" alt="作品 F">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">伊登十二色相環完整版</h5>
+                    <p class="small opacity-75 mb-0">2024.4.6</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="color/007.jpg" alt="作品 G">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">50色創意命名</h5>
+                    <p class="small opacity-75 mb-0">2024.4.28</p>
+                </div>
+            </div>
+        </div>
+                </div>
+            </div>
+
+            <div id="block-cad" class="subject-content-block">
+                <div class="text-center mb-4"><a href="javascript:void(0)" class="block-top-arrow" onclick="scrollToButtons()"><i class="fas fa-chevron-circle-up"></i> 重選科目</a></div>
+                <h3 class="fw-bold border-bottom pb-2 mb-4" style="color: var(--accent-color);"><i class="fas fa-palette me-2"></i>電腦輔助設計 ｜ 作品展示</h3>
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/001.png" alt="作品 001">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.4.8</p>
+                </div>
+            </div>
+        </div>
+         <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/002.png" alt="作品 002">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.18</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/003.png" alt="作品 003">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.18</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/004.png" alt="作品 004">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.18</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/005.png" alt="作品 005">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.20</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/006.png" alt="作品 006">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.21</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/007.png" alt="作品 007">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.21</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/008.png" alt="作品 008">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.21</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/009.png" alt="作品 009">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.22</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/010.png" alt="作品 010">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.22</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/011.png" alt="作品 011">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.22</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/012.png" alt="作品 012">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.23</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/013.png" alt="作品 013">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.24</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/014.png" alt="作品 014">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.25</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/015.png" alt="作品 015">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.25</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/016.png" alt="作品 016">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.25</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/017.png" alt="作品 017">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.26</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/018.png" alt="作品 018">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.18</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/019.png" alt="作品 019">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2026.4.29</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/020.png" alt="作品 020">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2026.5.17</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/021.png" alt="作品 021">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2026.6.3</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/022.png" alt="作品 022">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.16</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/023.png" alt="作品 023">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.17</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/024.png" alt="作品 024">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.18</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="cad/025.png" alt="作品 025">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">建模作品展示</h5>
+                    <p class="small opacity-75 mb-0">2025.7.18</p>
+                </div>
+            </div>
+        </div>
+                </div>
+            </div>
+
+            <div id="block-photo" class="subject-content-block">
+                <div class="text-center mb-4"><a href="javascript:void(0)" class="block-top-arrow" onclick="scrollToButtons()"><i class="fas fa-chevron-circle-up"></i> 重選科目</a></div>
+                <h3 class="fw-bold border-bottom pb-2 mb-4" style="color: var(--accent-color);"><i class="fas fa-palette me-2"></i>攝影創作 ｜ 作品展示</h3>
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=photo-1&title=鏡頭視覺語言基礎：距離與視點 / 焦距與觀點&category=攝影創作&material=數位單眼&year=2025.9.28&concept=拍攝者在同一個拍攝角度，透過不同的「鏡頭焦距」與「拍攝距離」，加強或削弱前後景物或元素之間的關係。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="photography/1-A-4.jpg" alt="攝影創作">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">鏡頭視覺語言基礎</h5>
+                                <p class="small opacity-75 mb-0">透過不同的「鏡頭焦距」與「拍攝距離」，加強或削弱前後景物或元素之間的關係。</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=photo-2&title=光線視覺語言與攝影用光基礎&category=攝影創作&material=數位單眼&year=2025.10.15&concept=最初攝影的發明被稱為【光的描繪】，光線作為攝影的核心元素因此攝影又被稱作用光的藝術，扮演著攝影影像品質的關鍵。藉由透過對於不同光源的觀察，感受人眼與相機眼對於光線觀看上的落差經驗，以及點面光源的不同視覺質感的攝影用光基礎思維。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="photography/2-C-1.jpg" alt="攝影創作">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">光線視覺語言與攝影用光基礎</h5>
+                                <p class="small opacity-75 mb-0">藉由透過對於不同光源的觀察，感受人眼與相機眼對於光線觀看上的落差經驗，以及點面光源的不同視覺質感的攝影用光基礎思維。</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=photo-3&title=簡易曝光控制：攝影曝光的再現與表現&category=攝影創作&material=數位單眼&year=2025.10.29&concept=有別於演算法攝影如HDR的畫面曝光干預，本項作品針對曝光增減的控制，嘗試拍攝出還原物件應有的材質與明暗層次，試圖達到以 客觀再現(還原物件材質與明暗)的方式呈現主題的影像。以及利用刻意的修正曝光達到藝術與美感的需求，成為曝光的主觀表現。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="photography/3-B-2.jpg" alt="攝影創作">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">簡易曝光控制</h5>
+                                <p class="small opacity-75 mb-0">針對曝光增減的控制，嘗試拍攝出還原物件應有的材質與明暗層次。</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=photo-4&title=色彩管理基礎與曝光思維的客觀再現和主觀表現&category=攝影創作&material=數位單眼&year=2025.11.13&concept=在透過色階分佈圖的觀察對照明暗控制外，白平衡的運用也是照片的色彩管理的開始。特別是商品攝影、活動攝影與動態攝影拍攝，對應後製剪輯，工作流程必須在拍攝時校準器材WB設定。 在曝光思考邏輯和照片運用中，客觀再現與主觀表現分別代表不同的思考與創意呈現：客觀再現->還原原本主題應有的色彩、材質、造型與立體感細節等，可使用白紙測量準確的WB設定，並注意色階分布圖與曝光主觀表現 ->藉由刻意偏移的WB和EV明暗設定創造色彩感情與視覺氛圍" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="photography/4-B-2.jpg" alt="攝影創作">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">色彩管理基礎與曝光思維</h5>
+                                <p class="small opacity-75 mb-0">透過色階分佈圖的觀察對照明暗控制，白平衡運用照片的色彩管理。</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=photo-5&title=「快門」的影像表現特性與創作與RAW處理&category=攝影創作&material=數位單眼&year=2025.11.16&concept=快門為控制曝光量多寡的裝置之一，而決定它給與曝光的量之因素，則是快門從開到關的時間長短。相機發展之初，最早的快門就是鏡頭蓋，隨著感光材料感光能力速度的提升，曝光時間越來越短，為了在操作速度上能夠配合，快門裝置因此誕生。由於快門是以開啟到關閉的時間長短來控制曝光量，因而它的另一功能即是---控制影像的動態效果。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="photography/5-B-2-LRC.jpg" alt="攝影創作">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">「快門」的影像表現特性與創作與RAW處理</h5>
+                                <p class="small opacity-75 mb-0">快門為控制曝光量多寡的裝置之一，而決定它給與曝光的量之因素，則是快門從開到關的時間長短。</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=photo-6&title=光圈影像表現的看見與看不見&RAW處理&category=攝影創作&material=數位單眼&year=2025.11.27&concept=無論是傳統的化學感光材料或數位感光元件，都須要接受光的曝曬（曝光）而造成明暗及色彩的呈現，過量及不足的曝光都無法正確的顯現理想的影像。「相機」的基本概念就是透過光學儀器的控制，使感光材料獲得適當的曝光，而得到創作者的「理想」影像之過程。而相機則是利用「光圈」與「快門」兩個主要裝置量控制進光量，當在固定時間(快門)中，用以控制光量進入「感光元件」曝光的孔即為「光圈」，而「孔」的大小則決定「感光元件」曝光量之多寡。但由於光孔成像之光學現象，光孔大小不只控制了曝光量，也影響了影像中景深的長短。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="photography/6-C-1.jpg" alt="攝影創作">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">光圈影像表現的看見與看不見&RAW處理</h5>
+                                <p class="small opacity-75 mb-0">了解攝影工具的兩大裝置之一「光圈」，思考它所能帶來的影像特性，以及因為它的特性所能創造的影像語言，在人眼的可見與不見當中，創作出最終影像。</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=photo-7&title=基礎攝影構圖-視覺構成與RAW處理&category=攝影創作&material=數位單眼&year=2025.11.27&concept=攝影的畫面佈局和安排，往往和要傳達的影像內容是否達到溝通效果有關。因此除了主題要能突顯讓人能辨識之外，還要增添畫面趣味與美感讓觀者的視線能在畫面中游移。因此對於畫面佈局上的有形的線條和無形的線條運用好壞，以及主題元素的數量和位置都有關鍵的影響。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="photography/7-B-1.jpg" alt="攝影創作">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">基礎攝影構圖-視覺構成與RAW處理</h5>
+                                <p class="small opacity-75 mb-0">觀察畫面佈局上的有形的線條和無形的線條運用好壞，以及主題元素的數量和位置。</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div id="block-sketch" class="subject-content-block">
+                <div class="text-center mb-4"><a href="javascript:void(0)" class="block-top-arrow" onclick="scrollToButtons()"><i class="fas fa-chevron-circle-up"></i> 重選科目</a></div>
+                <h3 class="fw-bold border-bottom pb-2 mb-4" style="color: var(--accent-color);"><i class="fas fa-palette me-2"></i>素描 ｜ 作品展示</h3>
+                <div class="row g-4">
+            <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/001.png" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">聖靜物光影明暗積累</h5>
+                    <p class="small opacity-75 mb-0">手動繪畫肌理，鍛鍊極致的三維光影觀察力與形體捕捉。</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/002.png" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描臨摹作品2</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/003.png" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描臨摹作品3</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/004.png" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描臨摹作品4</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/005.png" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描臨摹作品5</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/006.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品1</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/007.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品2</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/008.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品3</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/009.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品4</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/010.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品5</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/011.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品6</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/012.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品7</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/013.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品8</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/014.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品9</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/015.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品10</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/016.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品11</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/017.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品12</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/018.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品13</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/019.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品14</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/020.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品15</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/021.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品16</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/022.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描速寫作品17</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/023.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描臨摹作品6</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/024.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描臨摹作品7</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/025.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描臨摹作品8</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="sketch/026.jpg" alt="素描">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">素描臨摹作品9</h5>
+                </div>
+            </div>
+        </div>
+                </div>
+            </div>
+
+            <div id="block-method" class="subject-content-block">
+                <div class="text-center mb-4"><a href="javascript:void(0)" class="block-top-arrow" onclick="scrollToButtons()"><i class="fas fa-chevron-circle-up"></i> 重選科目</a></div>
+                <h3 class="fw-bold border-bottom pb-2 mb-4" style="color: var(--accent-color);"><i class="fas fa-palette me-2"></i>設計方法 ｜ 作品展示</h3>
+                <div class="row g-4">
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/001.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">思維發想與創意框架</h5>
+                    <p class="small opacity-75 mb-0">思維導圖與創意收斂、發散，將抽象靈感轉化為可行方案。</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/002.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch2</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/003.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketc3</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/004.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch4</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/005.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch5</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/006.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch6</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/007.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch7</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/008.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch8</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/009.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch9</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/010.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch10</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/011.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch11</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/012.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch12</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/013.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch13</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/014.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch14</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/015.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch15</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/016.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch16</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/017.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch17</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/018.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch18</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/019.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch19</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/020.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch20</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/021.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch21</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/022.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch22</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/023.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch23</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/024.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch24</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/025.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch25</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/026.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch26</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/027.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch27</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/028.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch28</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/029.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch29</h5>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="method/030.png" alt="設計方法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">sketch30</h5>
+                </div>
+            </div>
+        </div>
+                </div>
+            </div>
+
+            <div id="block-basic" class="subject-content-block">
+                <div class="text-center mb-4"><a href="javascript:void(0)" class="block-top-arrow" onclick="scrollToButtons()"><i class="fas fa-chevron-circle-up"></i> 重選科目</a></div>
+                <h3 class="fw-bold border-bottom pb-2 mb-4" style="color: var(--accent-color);"><i class="fas fa-cubes me-2"></i>基礎設計 ｜ 作品展示</h3>
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="basic/001.jpg" alt="基礎設計">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">基礎設計絹印</h5>
+                    <p class="small opacity-75 mb-0">是一種將圖案雕刻在網目版上，利用刮刀將顏料透過網孔印在物品上的傳統技法。創作日期：2024.12.31</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="basic/002.jpg" alt="基礎設計">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">聖誕樹模型製作</h5>
+                    <p class="small opacity-75 mb-0">創作日期：2024.11.12</p>
+                </div>
+            </div>
+        </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=basic-1&title=立體與半立體構成創作&category=基礎設計&material=卡紙、竹籤&year=2024.6.6&concept=點、線、面在三維空間中的交織排布，鍛鍊虛實量體與純粹幾何的空間秩序感。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="basic/007.jpg" alt="基礎設計">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">立體與半立體構成創作</h5>
+                                <p class="small opacity-75 mb-0">點、線、面在三維空間中的交織排布，鍛鍊量體與空間秩序感。</p>
+                            </div>
+                        </a>
+                    </div>
+ <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="basic/003.jpg" alt="基礎設計">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">立體拚貼</h5>
+                    <p class="small opacity-75 mb-0">創作日期：2024.10.29</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="basic/005.jpg" alt="基礎設計">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">平面基礎設計</h5>
+                    <p class="small opacity-75 mb-0">創作日期：2024.10.1</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="basic/004.jpg" alt="基礎設計">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">平面基礎設計2</h5>
+                    <p class="small opacity-75 mb-0">創作日期：2024.10.8</p>
+                </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="basic/006.jpg" alt="基礎設計">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">風鈴設計</h5>
+                    <p class="small opacity-75 mb-0">創作日期：2024.6.20</p>
+                </div>
+                </div>
+            </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="basic/008.jpg" alt="基礎設計">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">費納奇鏡</h5>
+                    <p class="small opacity-75 mb-0">創作日期：2024.5.21</p>
+                </div>
+                </div>
+            </div>
+    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=basic-2&title=立體與半立體構成創作&category=基礎設計&material=卡紙、竹籤&year=2024.5.4&concept=以illusion的手法來設計創作自己的英文名字、或拼音、或中文名30張。例如：1.有空間感的文字2.有立體感的文字3.有速度感的文字4.有錯視的設計" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="basic/009.jpg" alt="基礎設計">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">錯視作業</h5>
+                                <p class="small opacity-75 mb-0">以自己的英文名字、或拼音、或中文名創作錯視作業。</p>
+                            </div>
+                        </a>
+                    </div>
+    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=basic-3&title=形的加減法或二的連續次方&category=基礎設計&material=紙板、帶針筆&year=2024.4.18&concept=本作品以「數學邏輯」為骨架，探索二維平面上的空間秩序。設計圍繞「形的加減法」展開，透過幾何圖形的疊加、交錯與正負形互補，在黑白與冷色調的區塊中創造出動態的視覺張力。同時導入「2的連續次方」之遞迴概念，將畫面進行對稱性的等比拆解（二分、四分至多層次重構），於平面的線條之中，推動出具備立體縱深感的結構美學。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="basic/013.jpg" alt="基礎設計">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">形的加減法或二的連續次方</h5>
+                                <p class="small opacity-75 mb-0">一場將「數學理性邏輯」與「視覺感性美學」深度融合的幾何構成實驗。</p>
+                            </div>
+                        </a>
+                    </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="basic/016.jpg" alt="基礎設計">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">期末作品展出【聖誕樹】</h5>
+                    <p class="small opacity-75 mb-0">創作日期：2024.12.30</p>
+                </div>
+                </div>
+            </div>
+</div>
+</div>
+
+            <div id="block-metal" class="subject-content-block">
+                <div class="text-center mb-4"><a href="javascript:void(0)" class="block-top-arrow" onclick="scrollToButtons()"><i class="fas fa-chevron-circle-up"></i> 重選科目</a></div>
+                <h3 class="fw-bold border-bottom pb-2 mb-4" style="color: var(--accent-color);"><i class="fas fa-cubes me-2"></i>金屬工藝 ｜ 作品展示</h3>
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=metal-7&title=【 光芒 ➜ 幾何鏤空與立體光影的空間實驗 】&category=金屬工藝&material=黃銅片、焊片&year=2026.3.3&concept=本作品是一場關於「實體金工」與「光影捕捉」的跨界實踐。以寬版金色戒體作為畫布，表面保留了細緻的手工打磨紋理，展現出內斂而具備溫度的金屬質地。
+                        設計核心採用「形體的減法」，在戒台中央精準雕琢出四芒星的幾何鏤空。當光線灑落，這個缺口不再只是空間的虛無，而是成為捕捉光線的容器。光影穿透戒體，在皮膚或鏡面上投射出延伸的幾何陰影，打破了傳統首飾的封閉性，讓作品與環境光線產生互動。
+                        圓弧的戒環與俐落的幾何切線形成一虛一實、一剛一柔的視覺對比。透過主體與鏡面反射的交織，四芒星與倒影達成了完美的立體軸心對稱，在極簡的平面線條中，推動出具備縱深感的工藝秩序。
+                        結語：《光芒》不僅是一件日常配戴的飾品，更是將稍縱即逝的光線，透過理性的幾何解構，永久封存於金屬結構之中的感性創作。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="metal/016.jpg" alt="金屬工藝">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">戒指製作1</h5>
+                                <p class="small opacity-75 mb-0">【點亮指尖的永恆微光】</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=metal-8&title=【 符號與空間的連續律動 】&category=金屬工藝&material=黃銅片、焊片&year=2026.3.17&concept=關於「圖形連續性」與「空間減法」的實體工藝實踐。設計以具備溫暖手感的金色寬版戒體為載體，將象徵情感的「心形」符號進行解構與重組。透過精密的工藝鏤空，讓圖案在圓弧的戒面上呈現「大 ➜ 小 ➜ 半形」的等律漸變與連續性排列。當光線穿透心形缺口，虛體的空間與實體的金屬線條產生強烈對比，並透過底部的鏡面反射，在二維的倒影與三維的立體形變之間，交織出兼具幾何秩序與感性溫度的基礎美學實驗。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="metal/017.jpg" alt="金屬工藝">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">戒指製作2</h5>
+                                <p class="small opacity-75 mb-0">戒指基礎設計</p>
+                            </div>
+                        </a>
+                    </div>
+                <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=metal-9&title=【 交會 ➜ 空間線條的立體重構 】&category=金屬工藝&material=黃銅片&year=2026.3.31&concept=本作品《交會》是一件將「幾何線條」與「三維空間」進行複合拼接的立體耳飾創作。設計概念聚焦於個體與線條之間的「碰撞與聚合」。作品打破了傳統耳飾圓潤的既定印象，以帶有數位像素感、階梯狀的金屬片為基本單元，透過精密的十字軸向交錯技法，讓金屬結構在空間中垂直與水平地展開、堆疊。這些俐落的鋸齒切線與幾何片狀物件在中央核心相遇、交會，並向外延伸出具備速度感與動態縱深的建築感結構。隨著配戴者的擺動，金屬多角度的表面將折射出豐富的光影層次，在平面線條與立體結構的交界線上，實踐一場前衛而充滿張力的工藝美學實驗。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="metal/018.jpg" alt="金屬工藝">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">耳飾設計1</h5>
+                                <p class="small opacity-75 mb-0">【交會 ➜ 空間線條的立體重構】</p>
+                            </div>
+                        </a>
+                    </div>
+                <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=metal-10&title=【 旋律 ➜ 平面形變與曲面律動的空間實驗 】&category=金屬工藝&material=紅銅片&year=2026.4.14&concept=化三維曲面」與「視覺韻律」的耳飾工藝實踐。設計大膽打破金屬材質生硬、扁平的既定印象。以帶有規律放射狀、梳狀鏤空的幾何金屬片為起點，運用理性的工藝扭轉與曲面形變技法，讓原本平面的線條在空間中延展出流暢的雙曲面弧度。這種「有機扭轉」不僅賦予了材質如同植物葉片般流暢的生命力，更創造出一種旋轉、延伸的動態韻律。當配戴者隨風擺動時，交錯的鏤空線條與曲面落差，將在鏡面反射與光影流轉間，交織出虛實相生、極具律動感的立體美學。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="metal/020.jpg" alt="金屬工藝">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">耳飾設計2</h5>
+                                <p class="small opacity-75 mb-0">耳飾基礎設計</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=metal-1&title=金屬工藝丙檢題型一【三角形】&category=金屬工藝&material=黃銅片、焊片&year=2026.5.5&concept=對堅硬金屬材質進行冷鍛形變實驗，在重覆敲擊的過程中探索隨機自然紋理與拋光折射質感。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="metal/009.jpg" alt="金屬工藝">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">金屬工藝丙檢題型一</h5>
+                                <p class="small opacity-75 mb-0">包含銳角與鈍角修整。</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=metal-2&title=金屬工藝丙檢題型二【方形】&category=金屬工藝&material=黃銅片、焊片&year=2026.5.12&concept=對堅硬金屬材質進行冷鍛形變實驗，在重覆敲擊的過程中探索隨機自然紋理與拋光折射質感。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="metal/014.jpg" alt="金屬工藝">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">金屬工藝丙檢題型二</h5>
+                                <p class="small opacity-75 mb-0">要求完美的直角與邊長平整度。</p>
+                            </div>
+                        </a>
+                    </div>
+                <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=metal-3&title=金屬工藝丙檢題型三【菱形】&category=金屬工藝&material=黃銅片、焊片&year=2026.5.19&concept=對堅硬金屬材質進行冷鍛形變實驗，在重覆敲擊的過程中探索隨機自然紋理與拋光折射質感。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="metal/002.jpg" alt="金屬工藝">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">金屬工藝丙檢題型三</h5>
+                                <p class="small opacity-75 mb-0">角度對稱與直線平順為重點。</p>
+                            </div>
+                        </a>
+                    </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=metal-4&title=金屬工藝丙檢題型四【六角形】&category=金屬工藝&material=黃銅片、焊片&year=2026.5.26&concept=對堅硬金屬材質進行冷鍛形變實驗，在重覆敲擊的過程中探索隨機自然紋理與拋光折射質感。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="metal/012.jpg" alt="金屬工藝">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">金屬工藝丙檢題型四</h5>
+                                <p class="small opacity-75 mb-0">邊與邊的接縫對稱要求高。</p>
+                            </div>
+                        </a>
+                    </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=metal-5&title=金屬工藝丙檢題型五【圓形】&category=金屬工藝&material=黃銅片、焊片&year=2026.6.2&concept=對堅硬金屬材質進行冷鍛形變實驗，在重覆敲擊的過程中探索隨機自然紋理與拋光折射質感。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="metal/007.jpg" alt="金屬工藝">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">金屬工藝丙檢題型五</h5>
+                                <p class="small opacity-75 mb-0">邊緣需呈現完美的圓弧，不可有鋸齒狀。</p>
+                            </div>
+                        </a>
+                    </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=metal-6&title=金屬工藝丙檢題型六【橢圓形】&category=金屬工藝&material=黃銅片、焊片&year=2026.6.9&concept=對堅硬金屬材質進行冷鍛形變實驗，在重覆敲擊的過程中探索隨機自然紋理與拋光折射質感。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="metal/004.jpg" alt="金屬工藝">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">金屬工藝丙檢題型六</h5>
+                                <p class="small opacity-75 mb-0">曲線流暢度要求高，常需挖除中間特定內孔。</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div id="block-model" class="subject-content-block">
+                <div class="text-center mb-4"><a href="javascript:void(0)" class="block-top-arrow" onclick="scrollToButtons()"><i class="fas fa-chevron-circle-up"></i> 重選科目</a></div>
+                <h3 class="fw-bold border-bottom pb-2 mb-4" style="color: var(--accent-color);"><i class="fas fa-cubes me-2"></i>模型製作 ｜ 作品展示</h3>
+                <div class="row g-4">
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="model/001.png" alt="模型製作">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">CNC製作</h5>
+                    <p class="small opacity-75 mb-0">一種透過電腦程式預設指令自動控制機械加工的先進製造技術。</p>
+                </div>
+                </div>
+            </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="model/002.png" alt="模型製作">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">水龍頭模型製作</h5>
+                    <p class="small opacity-75 mb-0">材料：PU、補土</p>
+                </div>
+                </div>
+            </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="model/003.png" alt="模型製作">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">遙控器模型製作</h5>
+                    <p class="small opacity-75 mb-0">材料：EK</p>
+                </div>
+                </div>
+            </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="model/004.png" alt="模型製作">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">時鐘模型製作</h5>
+                    <p class="small opacity-75 mb-0">材料：EK</p>
+                </div>
+                </div>
+            </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="model/005.png" alt="模型製作">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">滑鼠模型製作</h5>
+                    <p class="small opacity-75 mb-0">材料：EK</p>
+                </div>
+                </div>
+            </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="model/006.png" alt="模型製作">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">手把模型製作</h5>
+                    <p class="small opacity-75 mb-0">材料：PU、補土</p>
+                </div>
+                </div>
+            </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="model/007.png" alt="模型製作">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">基礎模型製作</h5>
+                    <p class="small opacity-75 mb-0">材料：EK</p>
+                </div>
+                </div>
+            </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="model/008.png" alt="模型製作">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">存錢筒製作</h5>
+                    <p class="small opacity-75 mb-0">材料：ABS</p>
+                </div>
+                </div>
+            </div>
+                </div>
+            </div>
+
+            <div id="block-wood" class="subject-content-block">
+                <div class="text-center mb-4"><a href="javascript:void(0)" class="block-top-arrow" onclick="scrollToButtons()"><i class="fas fa-chevron-circle-up"></i> 重選科目</a></div>
+                <h3 class="fw-bold border-bottom pb-2 mb-4" style="color: var(--accent-color);"><i class="fas fa-cubes me-2"></i>木竹藝技法 ｜ 作品展示</h3>
+                <div class="row g-4">
+        <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="wood/001.jpg" alt="木竹藝技法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">籐影交織</h5>
+                    <p class="small opacity-75 mb-0">運用質樸的黑色紙籐編織與溫潤木作結合，在理性結構中帶出細緻的手作溫度。材料：木材、紙藤</p>
+                </div>
+                </div>
+            </div>
+
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=wood-1&title=不敢看你的月亮&category=木竹藝技法&material=天然木材、聲控LED燈組&year=2026.1.12&concept=《不敢看你的月亮》是一件關於「視線」與「情緒情感」的互動工藝燈具作品。
+作品外觀採用天然木材手工打造，呈現出安靜而簡潔的溫潤風格。在造型上，大膽將人形的姿態向內折疊，形成一種迴避、躲藏與自我收縮的內斂狀態，使物件本身成為一種情感的載體，而不再只是冷冰冰的功能性燈具。
+最核心的設計在於將「光作為情緒，而非照明」。發光的圓球光源被放置在人形的頭部，象徵著意識的靈魂存在，與心中那股無法隱藏的強烈感受。這道光並不是為了被看見而存在，它如同寂靜的月亮，雖然照亮了周遭的所有人，卻不與任何人的目光對視。
+同時，作品融合了現代聲控互動技術，能夠透過聲音對它說「開燈、關燈、換顏色、亮一點、暗一點」，讓觀者在與燈具對話的過程中，產生如同與內心自我、或是與一個害羞內斂的朋友互動的情感共鳴。在黑暗中，即使想消失，它也依然在溫柔發光。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="wood/004.jpg" alt="設計材料加工">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">設計材料加工製作</h5>
+                                <p class="small opacity-75 mb-0">運用內斂人形與聲控光影，詮釋在孤獨與情感迴避中，靈魂深處無聲的自我發光。</p>
+                            </div>
+                        </a>
+                    </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=wood-2&title=壁掛式口罩盒&category=木竹藝技法&material=西卡紙、強力磁鐵&year=2025.11.20&concept=《壁掛式口罩盒》是一件從日常痛點出發、兼具機能性與空間美學的基礎產品設計作品。
+
+本設計旨在改良一般市售傳統桌面抽取式口罩盒佔用空間、不便拿取的不便。整體外觀採用簡潔的西卡紙進行結構打樣，並在背面創新融入強力磁鐵設計，採取壁掛式的模式。透過磁吸功能，口罩盒可以自由固定於鐵門、冰箱或玄關壁面上，大幅提升了出門前的拿取便利性，進而釋放寶貴的桌面空間。
+
+在機能細節上，本作品具備雙重貼心考量：
+1. 上方「翻蓋式補貨口」：平常覆蓋時能有效阻絕灰塵、確保內部口罩的衛生；需要補充時可直接掀開，操作直覺。
+2. 前方「圓弧抽取口」：順應人體工學的流線剪裁，確保口罩抽取時順暢不卡頓。
+
+此外，本產品更具備極高的生活延伸性。在設計思維中，它可以依照家庭成員的需求，彈性分成大人、小孩等不同大小的口罩盒尺寸來分區管理。材質上，未來也能隨使用者喜好替換成硬牛皮紙或更耐磨的工藝材質，兼顧環保、輕量與收納的彈性，為後疫情時代的生活注入更貼心、更有秩序的儀式感。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="wood/005.jpg" alt="設計材料加工">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">設計材料加工製作</h5>
+                                <p class="small opacity-75 mb-0">運用簡潔的紙藝結構與壁掛磁吸設計，優化日常物件收納並釋放桌面空間。</p>
+                            </div>
+                        </a>
+                    </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="wood/007.jpg" alt="木竹藝技法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">木質動物與幾何木偶手機支架</h5>
+                    <p class="small opacity-75 mb-0">將療癒貓咪與幾何骰子木偶轉化為趣味結構，兼具辦公療癒擺飾與實用雙腿托撐的手作實木手機支架。</p>
+                </div>
+                </div>
+            </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+            <div class="portfolio-item-wrap" onclick="openLightbox(this)" style="cursor: pointer;">
+                <div class="glass-card p-3">
+                    <div class="portfolio-img-container">
+                        <img src="wood/009.pNg" alt="木竹藝技法">
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-2">極簡木質印籠口收納盒</h5>
+                    <p class="small opacity-75 mb-0">運用精準的印籠口階梯卡槽結構與溫潤實木紋理，打造線條俐落、兼具收納機能與工藝美學的手工細木盒。</p>
+                </div>
+                </div>
+            </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=wood-3&title=多功能盤子/多功能燭台&category=木竹藝技法&material=環保 PLA (聚乳酸) 高品質 3D 列印材質/天然柳杉木、高透光工業方塊、活動式木盤&year=2026.4.19&concept=《案頭秩序與光影實驗室》是一組探討現代人在生活與工作交界處，如何尋求「純粹、秩序與感性共生」的桌面美學套組。本系列作品由「多功能收納盤」與「多功能燭台」相輔相成，大膽將理性的幾何塊面進行有機重組，在數位科技與傳統手工藝的異材質碰撞中，為緊湊的日常注入精緻的儀式感。
+
+【多功能盤子——重塑日常的微型建築】
+收納盤採用「一體成型（Monolithic Design）」的微型建築思維，全件使用源自再生資源的環保 PLA（聚乳酸）高品質 3D 列印技術製成。設計上透過高低錯落的幾何結構進行「三位一體」的機能分區：中央塔式筆筒為各種長度的文具提供穩定重心；左側排列的錐形戒指展示座讓日常飾品如同藝術品般陳列；右側圓弧凹槽則順應人體工學，方便流暢拿取手錶、鑰匙或便條紙。這款收納盤不再只是物品的堆放容器，而是優雅維持案頭整潔的秩序載體。
+
+【多功能燭台——冰火共融的光影實驗】
+與冷冽理性的 3D 列印相呼應，多功能燭台則專注於感性的光影氛圍。作品以「冰火共融」為核心，左側燃燒區大膽運用多維度堆疊的工業透明方塊，營造出如晶瑩「冰晶」的幾何視覺，深陷的包覆式結構更兼具穩固防風的安全機能；基底與右側活動小木盤則選用質地厚實的天然柳杉木，保留了原始溫潤的木紋與色調。當燭火點燃，跳動的火光與冰晶方塊折射交織，在桌面上投射出如碎鑽般迷人的光芒，象徵著時間在木紋上的緩慢流動。
+
+本套組完美串聯了「環保科技材質」與「有機天然木材」的對話。從白晝裡條理分明的收納盤，到黑夜中釋放壓力的香氛燭台，這項設計不僅優化了現代空間的繁瑣日常，更在秩序與混亂並存的世界中，為現代人建立起一道溫柔且充滿美感的案頭儀式。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="wood/016.jpg" alt="設計材料加工">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">設計材料加工製作</h5>
+                                <p class="small opacity-75 mb-0">採用一體成型的微型建築思維，透過環保3D列印打造收納與美感共生的桌面秩序載體。/以冰火共融為核心，結合厚實柳杉木與剔透方塊，營造碎鑽光影般的案頭香氛儀式感。</p>
+                            </div>
+                        </a>
+                    </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=wood-4&title=月玫星語&category=木竹藝技法&material=香氛石膏粉、天然原木紋底座、LED暖光模組、觸控式感應開關&year=2026.6.13&concept=《月玫瑰星語》是一件靈感來自經典文學《小王子》的浪漫互動工藝作品。
+
+《小王子》中最深刻的並非旅行，而是理解「愛與責任」的意義。故事中的玫瑰雖然嬌嫩而脆弱，卻始終是小王子心中獨一無二的存在。本作品以這份雋永的愛為創作原型，將原著中的沙漠場景轉化為象徵夢境與思念的「月球」。鏤空的月球意象表露表面是襯托，如同小王子與玫瑰之間無法割捨的羈絆；玫瑰不再只是被守護的對象，而成為照亮旅程的指引，象徵著愛與陪伴在人生道路上的溫柔引領。
+
+本作品在工藝細節與生活機能上，具備多維度的美學考量：
+
+1. 月球光影美學與香氛燈罩：燈罩採用高精度香氛石膏粉手工打造，細緻刻劃出月球表面的隕石坑洞。鏤空雕刻讓光線溢出時柔和透亮，營造靜謐夢幻的夜空氛圍。同時兼具擴香功能，可將精油直接滴在月球表面，讓香氣隨溫熱緩緩散發。
+2. 手工玫瑰花圈：月球底部環繞著 14 朵細工琢磨的手工石膏玫瑰，將浪漫意象與燈體結構完美融合。
+3. 溫潤木質底座與觸控設計：基底選用天然原木紋底座，手感溫潤。中央設有金屬觸控式感應按鈕，輕觸即可優雅開關並自由調節燈光亮度，操作直覺便利。
+
+當溫暖的暖光從月球的坑洞與純白玫瑰間灑落，就如同夜空中的星光，不僅能作為床頭舒眠小夜燈守護每個夜晚，更在呼吸與香氛吐納間，提醒著人們珍惜生命中那些真正重要的人與事物。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="wood/014.png" alt="設計材料加工">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">設計材料加工製作</h5>
+                                <p class="small opacity-75 mb-0">靈感源自《小王子》，將手工玫瑰石膏微雕與月球觸控燈座結合，營造兼具擴香與舒眠光影的案頭情境。</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div id="block-product" class="subject-content-block">
+                <div class="text-center mb-4"><a href="javascript:void(0)" class="block-top-arrow" onclick="scrollToButtons()"><i class="fas fa-chevron-circle-up"></i> 重選科目</a></div>
+                <h3 class="fw-bold border-bottom pb-2 mb-4" style="color: var(--accent-color);"><i class="fas fa-cubes me-2"></i>創意商品設計 ｜ 作品展示</h3>
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=product-1&title=展翼自由&category=創意商品設計&material=天然石膏&year=2026.4.26&concept=《展翼自由》是一件以「鳥的翅膀」為發想起點，運用仿生設計（Biomimicry）作為核心方法的工藝生活用品。
+
+作品從自然生物的形態中擷取特徵，並透過設計語彙重新詮釋。圓形象徵微鳥的身體，代表穩定與核心；側邊延伸的幾何結構則轉化為翅膀意象，呈現飛行的動態。在造型發展上，大膽採用抽象化與幾何化手法，將原本具象的羽翼形態轉譯為簡潔的線條與分層切面，使整體造型去除繁複細節、保留本質特徵，藉此強化視覺辨識度與現代設計感。
+
+本作品最精彩之處在於「形式轉譯（Form Transformation）」的運用，成功將「展翅飛行」的動態凝結於靜態物件之中，使作品在靜止狀態下仍具有強烈的方向性與流動感，呈現出「即將起飛」的瞬間張力。
+
+在產品功能上，作為杯墊使用時，杯子置於圓形中心，如同生命的生命核心；延伸的翅膀圍繞其側，象徵即使在日常生活的限制之中，人依然能保有內在的自由與想像。而使用過程中杯底留下的水痕，亦可視為時間與行動的軌跡，趣味地呼應了飛行的意象。材質選用純白與細緻質地的石膏，對應輕盈與純粹的感受，進一步強化「自由」的象徵意涵——如同鳥一般，不受拘束，隨心展翼。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="product/005.jpg" alt="創意商品設計">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">仿生與生活產品設計</h5>
+                                <p class="small opacity-75 mb-0">運用仿生設計將鳥類展翼的自由動態轉譯為幾何切面，以純白石膏凝結具流動感的工藝杯墊。</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=product-2&title=霧月&category=創意商品設計&material=陶土、拉坯成形、灰藍綠調漸層釉藥&year=2026&concept=《霧月》是一件運用傳統拉坯成形技術打造的陶瓷花瓶作品。
+
+作品名稱源於其獨特的釉色表現。瓶身呈現出柔和的淡紫色與灰白色交錯漸層，如同晨曦中未散的雲霧，又似月光灑落於微微泛起漣漪的水面。在溫潤的釉面下，更藏著一絲絲細小的微閃亮點，宛如夜空中的繁星般若隱若現，賦予器物流動的生命力。
+
+在造型與器物美學上，本作品展現出內斂而含蓄的東方美感。流暢、圓潤的瓶身線條，不論是插上一枝孤挺的花草，亦或是作為獨立的空間裝置物件，都能散發出沉靜的張力。
+
+這件作品非常適合融入現代家居環境，安放於窗台、書桌或玄關一隅。它不單只是一個具備實用機能的花瓶，更像是一個能讓人慢下心靈的情感載體，透過如同月光照在輕霧上的溫柔色彩，為日常生活空間營造出一抹安靜、祥和且富有詩意的角落。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="product/007.jpg" alt="創意商品設計">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">陶藝工藝設計</h5>
+                                <p class="small opacity-75 mb-0">運用傳統拉坯技術與流動感淡紫釉色，凝聚晨曦雲霧與靜謐月光意象的內斂陶瓷花瓶。</p>
+                            </div>
+                        </a>
+                    </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=product-3&title=靜嵐&category=創意商品設計&material=陶土、拉坯成形、結晶斑點漸層釉藥&year=2026&concept=《靜嵐》是一件融合自然意象與侘寂美學的陶瓷茶杯作品，採用傳統拉坯技術成形。
+
+作品名稱「靜嵐」源於其傳遞的獨特氛圍。杯身施以灰藍綠中帶點白霧的釉色，散發著濃厚的自然山水氣息。「嵐」字意指山中的霧氣，透過釉藥在窯燒過程中的流動，完美呈現出山林間寧靜、平和且悠然的感受。
+
+本作品最深刻之處，在於對工藝痕跡的包容與轉譯。杯身底部留有一些在拉坯與施釉過程中，因微小誤差而自然形成的特殊痕跡；這項不完美非但沒有破壞器物，反而意外營造出如同雲霧繚繞在山腳下的深邃視覺。這種與自然和諧共生的動態感，賦予了茶杯獨一無二的生命故事。
+
+在造型上，《靜嵐》追求簡約、溫潤而內斂。淡雅的藍綠色調與質樸的杯身線條，極其適合在日常生活中，讓人靜靜坐下來喝杯茶、看看花、或是安靜地發發呆。它不只是一件生活實用器皿，更傳遞出一種歸隱山林、如山中下雨過後那般平和、安穩且寧靜的心境，為現代人的案頭帶來一抹悠遠的自然詩意。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="product/010.jpg" alt="創意商品設計">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">陶藝工藝設計</h5>
+                                <p class="small opacity-75 mb-0">運用拉坯工藝與灰藍綠漸層釉色，將工藝留痕轉譯為雲霧山水意象的侘寂風陶瓷茶杯。</p>
+                            </div>
+                        </a>
+                    </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=product-4&title=青霧石&category=創意商品設計&material=陶土、拉坯成形、結晶斑點漸層釉藥&year=2026&concept=《青霧石》是一件充滿質樸生活感與自然野趣的陶瓷花瓶作品，採用傳統拉坯技術手工成形。
+
+作品的靈感與命名源自對自然質地的觀察。瓶身施以帶有霧面質感的青綠色釉藥，表面不張揚、不刺眼，反而散發著一種如同山野原石般的粗獷與沉靜。最獨特之處在於釉面上隨機分佈的深色斑點，它們宛如山林裡的石頭歷經漫長歲月洗刷、被時間磨過的痕跡；又像是一場大雨過後，依附在石表上的苔蘚烘乾後所留下的生命印記。
+
+在造形美學上，本作品打破了傳統花瓶必須絕對精緻優雅的框架。胖嘟嘟、飽滿的瓶身，搭配比例上相對小巧微張的瓶口，勾勒出如同老奶奶家傳小胖壺那般憨厚、溫和且可可愛愛的視覺感。
+
+這種不刻意追求極致工整、反而帶有一點點野性與質樸的設計，賦予了器物更濃厚的「生活味道」。原本窯燒前對釉色表現的擔憂，在出窯後意外轉化為一種歲月靜好的和諧。無論是隨手插上一把野花，還是靜置於生活空間的角落，它都能以最內斂的姿態，為繁雜的現代日常注入一抹來自山林原野的安定力量。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="product/012.jpg" alt="創意商品設計">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">陶藝工藝設計</h5>
+                                <p class="small opacity-75 mb-0">透過胖拙流暢的拉坯瓶身與青綠斑駁釉色，將雨後苔蘚與歲月琢磨的石紋凝聚於日常器物。</p>
+                            </div>
+                        </a>
+                    </div>
+<div class="col-md-6 col-lg-4 portfolio-item" data-aos="fade-up">
+                        <a href="detail.html?id=product-5&title=月星沉光&category=創意商品設計&material=陶土、陶板手工成形、星閃效果漸層釉藥&year=2026&concept=《月星沉光》是一件兼具機能美學與情感陪伴的生活器物作品，採用傳統陶板工藝手工成形。
+
+本作品的創作核心在於營造一種「沉靜與安撫」的心靈感受。作品名稱「月星沉光」，源自釉藥在自然光線投射下所產生的迷人視覺。盤面在光照下，閃爍著溫柔低調的倒影，如同柔和的月光與滿天繁星點點，靜靜地沉落、融化在清澈的水面上。釉藥中特殊的斑點結構，更完美模擬了深夜星空的寧靜與低調閃耀感。
+
+在日常機能與造形設計上，這款盤子被賦予了優雅的收納角色，非常適合用來置放首飾、項鍊或桌案上的隨身小物。
+
+除了靜謐的星空意象，作品在細節處大膽融入了感性的幽默感——盤緣巧妙裝飾了一顆精緻小巧的「布丁」微雕。這個令人會心一笑的裝飾，不僅打破了傳統工藝品容易流於嚴肅的刻板印象，更在溫柔沉穩的器物調性中，成功注入了專屬於生活日常的可愛與溫度。
+
+《月星沉光》所傳遞的，是渴望為現代人疲憊的日常帶來一份慰藉。當結束了一天忙碌的行程回到家中，將身上的飾品摘下、順手放入這只盤中，在看見月光釉色與可愛布丁的瞬間，生活便開啟了一段放鬆、安穩且充滿儀式感的深夜療癒時刻。" class="portfolio-item-link">
+                            <div class="glass-card p-3">
+                                <div class="portfolio-img-container">
+                                    <img src="product/015.jpg" alt="創意商品設計">
+                                </div>
+                                <h5 class="fw-bold mt-3 mb-2">陶藝工藝設計</h5>
+                                <p class="small opacity-75 mb-0">以手工陶板與溫潤釉色凝聚月夜星光，並搭配趣味布丁微雕裝飾的療癒系多功能飾品盤。</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="btnBackToTop" class="back-to-top-btn" title="回科目按鈕選單" onclick="scrollToButtons()">
+        <i class="fas fa-chevron-up"></i>
+    </div>
+
+    <footer class="text-center py-4 mt-5 border-top border-secondary border-opacity-10" style="background: var(--card-bg); position: relative; z-index: 2;">
+        <p class="small opacity-75 mb-0">© 2026 Creative Space. All Rights Reserved. 設計與工藝的思維交界。</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <script>
+        AOS.init({ duration: 800, once: true });
+
+        function scrollToButtons() {
+            const targetPanel = document.getElementById('top-button-panel');
+            if(targetPanel) {
+                const offset = 70; 
+                const bodyRect = document.body.getBoundingClientRect().top;
+                const elementRect = targetPanel.getBoundingClientRect().top;
+                const elementPosition = elementRect - bodyRect;
+                const offsetPosition = elementPosition - offset;
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        function filterSubject(subjectId) {
+            const allBlocks = document.querySelectorAll('.subject-content-block');
+            allBlocks.forEach(block => block.classList.remove('active-block'));
+            
+            const targetBlock = document.getElementById('block-' + subjectId);
+            if(targetBlock) {
+                targetBlock.classList.add('active-block');
+                
+                setTimeout(() => {
+                    const offset = 70;
+                    const bodyRect = document.body.getBoundingClientRect().top;
+                    const elementRect = targetBlock.getBoundingClientRect().top;
+                    const elementPosition = elementRect - bodyRect;
+                    const offsetPosition = elementPosition - offset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }, 50);
+            }
+
+            const allBtns = document.querySelectorAll('.sub-space-btn');
+            allBtns.forEach(btn => btn.classList.remove('active'));
+            
+            if(typeof event !== 'undefined' && event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            } else {
+                allBtns.forEach(btn => {
+                    if(btn.getAttribute('onclick') === `filterSubject('${subjectId}')`) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+        }
+
+        const bttButton = document.getElementById('btnBackToTop');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                bttButton.classList.add('show');
+            } else {
+                bttButton.classList.remove('show');
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const spaceType = urlParams.get('space');
+            const activeSubject = urlParams.get('activeSubject'); 
+            
+            const panel2D = document.getElementById('panel2D');
+            const panel3D = document.getElementById('panel3D');
+            
+            const subjects2D = ['cg', 'color', 'cad', 'photo', 'sketch', 'method'];
+
+            if (activeSubject) {
+                if (subjects2D.includes(activeSubject)) {
+                    if(panel2D) panel2D.classList.add('show');
+                    if(panel3D) panel3D.classList.remove('show');
+                } else {
+                    if(panel3D) panel3D.classList.add('show');
+                    if(panel2D) panel2D.classList.remove('show');
+                }
+            } else {
+                if (spaceType === '2D') {
+                    if(panel2D) panel2D.classList.add('show');
+                } else if (spaceType === '3D') {
+                    if(panel3D) panel3D.classList.add('show');
+                } else {
+                    if(panel2D) panel2D.classList.add('show');
+                }
+            }
+
+            if (activeSubject) {
+                const targetBlock = document.getElementById('block-' + activeSubject);
+                if(targetBlock) {
+                    targetBlock.classList.add('active-block');
+                }
+
+                const allBtns = document.querySelectorAll('.sub-space-btn');
+                allBtns.forEach(btn => {
+                    if(btn.getAttribute('onclick') === `filterSubject('${activeSubject}')`) {
+                        btn.classList.add('active');
+                    }
+                });
+                
+                setTimeout(() => {
+                    if (targetBlock) {
+                        const offset = 90;
+                        const bodyRect = document.body.getBoundingClientRect().top;
+                        const elementRect = targetBlock.getBoundingClientRect().top;
+                        const elementPosition = elementRect - bodyRect;
+                        const offsetPosition = elementPosition - offset;
+
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'auto'
+                        });
+                    }
+                }, 50); 
+            }
+        });
+
+        // Canvas 粒子系統
+        const canvas = document.getElementById('effects-canvas');
+        const ctx = canvas.getContext('2d');
+        let animationFrameId;
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Sakura {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height - canvas.height;
+                this.r = Math.random() * 4 + 2;
+                this.g = Math.random() * 0.5 + 0.4;
+                this.deg = Math.random() * 40;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y, this.r, this.r * 1.5, this.deg * Math.PI / 180, 0, 2 * Math.PI);
+                ctx.fillStyle = "rgba(240, 175, 195, 0.65)";
+                ctx.fill();
+            }
+            update() {
+                this.y += this.g;
+                this.x += Math.sin(this.y / 30);
+                if (this.y > canvas.height) {
+                    this.y = -20;
+                    this.x = Math.random() * canvas.width;
+                }
+            }
+        }
+
+        class Meteor {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height * 0.4 - 100;
+                this.len = Math.random() * 60 + 40;
+                this.speed = Math.random() * 8 + 6;
+                this.thickness = Math.random() * 1.5 + 0.5;
+            }
+            draw() {
+                ctx.beginPath();
+                let gradient = ctx.createLinearGradient(this.x, this.y, this.x - this.len, this.y + this.len);
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                gradient.addColorStop(0.1, 'rgba(99, 102, 241, 0.6)');
+                gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = this.thickness;
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - this.len, this.y + this.len);
+                ctx.stroke();
+            }
+            update() {
+                this.x -= this.speed;
+                this.y += this.speed;
+                if (this.y > canvas.height || this.x < 0) { this.reset(); }
+            }
+        }
+
+        function initEffects(theme) {
+            cancelAnimationFrame(animationFrameId);
+            particles = [];
+            if (theme === 'dark') {
+                for(let i=0; i<6; i++) particles.push(new Meteor());
+            } else {
+                for(let i=0; i<25; i++) particles.push(new Sakura());
+            }
+            loop();
+        }
+
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.draw(); p.update(); });
+            animationFrameId = requestAnimationFrame(loop);
+        }
+
+        // 💡 修正後的主題切換邏輯
+        const themeToggle = document.getElementById('themeToggle');
+        const applyTheme = (theme) => {
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.body.setAttribute('data-theme', 'dark');
+                if(themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                initEffects('dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                document.body.removeAttribute('data-theme');
+                if(themeToggle) themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+                initEffects('light');
+            }
+        };
+
+        // 這裡負責動態按鈕事件的即時轉換
+        const currentSavedTheme = localStorage.getItem('theme') || 'light';
+        applyTheme(currentSavedTheme);
+
+        if(themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                let theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                applyTheme(theme);
+                localStorage.setItem('theme', theme);
+            });
+        }
+    </script>
+   <div id="customLightbox" onclick="closeLightbox()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 9999; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(8px);">
+    <span style="position: absolute; top: 20px; right: 30px; color: #fff; font-size: 40px; font-weight: bold; cursor: pointer;">&times;</span>
+    <img id="lightboxImg" src="" style="max-width: 90%; max-height: 85%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.3s ease;" alt="放大圖說">
+</div>
+
+<script>
+    // 1. 開啟燈箱功能
+    function openLightbox(element) {
+        // 抓取被點擊區塊內部的圖片 src
+        const imgSrc = element.querySelector('.portfolio-img-container img').src;
+        const lightbox = document.getElementById('customLightbox');
+        const lightboxImg = document.getElementById('lightboxImg');
+        
+        lightboxImg.src = imgSrc;
+        lightbox.style.display = 'flex';
+        
+        // 留一小段緩衝時間讓動畫更流暢
+        setTimeout(() => {
+            lightbox.style.opacity = '1';
+            lightboxImg.style.transform = 'scale(1)';
+        }, 10);
+    }
+
+    // 2. 關閉燈箱功能（補齊在這裡了！）
+    function closeLightbox() {
+        const lightbox = document.getElementById('customLightbox');
+        lightbox.classList.add('hide-anime');
+        
+        setTimeout(() => {
+            lightbox.style.display = 'none';
+            lightbox.classList.remove('hide-anime');
+        }, 300); // 300毫秒動態結束後完全關閉
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>選擇你的造物維度 ｜ Dimension Choice</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <style>
+        /* ==================== 核心全域與主題變數 ==================== */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            --text-color: #2d3748;
+            --card-bg: rgba(255, 255, 255, 0.4);
+            --card-border: rgba(255, 255, 255, 0.6);
+            --accent-color: #b48a8a; /* 春季櫻粉/木質暖調 */
+            --shadow-color: rgba(31, 38, 135, 0.05);
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --text-color: #f8fafc;
+            --card-bg: rgba(15, 23, 42, 0.45);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --accent-color: #6366f1; /* 星河極光藍靛 */
+            --shadow-color: rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.5s ease, color 0.5s ease;
+            overflow-x: hidden;
+            margin: 0;
+            position: relative;
+        }
+
+        /* ==================== 抉擇核心大卡片 ==================== */
+        .choice-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(20px) saturate(120%);
+            -webkit-backdrop-filter: blur(20px) saturate(120%);
+            border-radius: 24px;
+            box-shadow: 0 12px 40px 0 var(--shadow-color);
+            padding: 3.5rem 2rem;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        /* ==================== 維度選項方塊 ==================== */
+        .dimension-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 2.5rem 1.5rem;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .dimension-box i {
+            font-size: 3.5rem;
+            color: var(--accent-color);
+            transition: all 0.4s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        /* 懸浮發光與浮起特效 */
+        .dimension-box:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-8px);
+            border-color: var(--accent-color);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1), 
+                        0 0 15px var(--accent-color);
+            color: inherit;
+        }
+
+        .dimension-box:hover i {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        /* ==================== 返回首頁輕巧按鈕 ==================== */
+        .back-home-btn {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: bold;
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+        .back-home-btn:hover {
+            opacity: 1;
+            color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-home-btn">
+        <i class="fas fa-arrow-left me-2"></i>返回主空間
+    </a>
+
+    <div class="container d-flex justify-content-center px-4">
+        <div class="choice-card text-center" data-aos="zoom-in">
+            
+            <h2 class="fw-bold mb-2">解鎖靈感維度</h2>
+            <p class="opacity-75 small fw-bold mb-5" style="letter-spacing: 1px;">CHOOSE YOUR DESIGN DIMENSION</p>
+            
+            <div class="row g-4 justify-content-center">
+                
+                <div class="col-md-5" data-aos="fade-right" data-aos-delay="200">
+                    <a href="gallery.html?space=2D" class="dimension-box">
+                        <i class="fas fa-layer-group"></i>
+                        <h4 class="fw-bold mb-2">二維平面空間</h4>
+                        <p class="small opacity-75 mb-0 text-center lh-lg">
+                            電腦繪圖 ｜ 色彩學 ｜ 電腦輔助設計<br>
+                            攝影創作 ｜ 素描 ｜ 設計方法
+                        </p>
+                    </a>
+                </div>
+
+                <div class="col-md-5" data-aos="fade-left" data-aos-delay="200">
+                    <a href="gallery.html?space=3D" class="dimension-box">
+                        <i class="fas fa-cube"></i>
+                        <h4 class="fw-bold mb-2">三維立體空間</h4>
+                        <p class="small opacity-75 mb-0 text-center lh-lg">
+                            基礎設計 ｜ 金屬工藝 ｜ 模型製作<br>
+                            木竹藝技法 ｜ 創意商品設計
+                        </p>
+                    </a>
+                </div>
+
+            </div> </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <script>
+        // 初始化 AOS 動畫
+        AOS.init({
+            duration: 800,
+            once: true
+        });
+
+        // 自動同步首頁的日夜間主題設定
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            document.body.setAttribute('data-theme', 'dark');
+        }
+    </script>
+</body>
+</html>
