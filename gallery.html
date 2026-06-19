@@ -242,17 +242,6 @@ html[data-theme="dark"], html[data-theme="dark"] body {
         border: 1px solid var(--card-border);
     }
 }
-    /* 提升導覽列層級（上一關加的） */
-    .navbar-custom {
-        z-index: 9999 !important;
-    }
-
-    /* 💡 新增：強制逼迫手機啟用顯示卡加速，消除毛玻璃特效造成的頁面跳轉閃白 */
-    .glass-card, .portfolio-item-wrap, .main-panel {
-        will-change: transform, opacity;
-        transform: translate3d(0, 0, 0);
-    }
-}
     </style>
 </head>
 <body>
