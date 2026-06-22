@@ -200,6 +200,13 @@
             60% { transform: translateY(-4px); }
         }
        /* 同時修正頂部與底部卡住的終極設定 */
+#about {
+    height: auto !important;      /* ➡️ 關鍵：解除固定高度，讓卡片隨字數自動變長 */
+    min-height: 100vh;            /* 確保卡片至少有一個螢幕的高度，保持美觀 */
+    padding-top: 40px !important;  /* 頂部留白，解決往上箭頭卡字 */
+    padding-bottom: 55px !important; /* 底部留白，解決往下箭頭卡字 */
+    position: relative;
+}
 #experience {
     height: auto !important;      /* ➡️ 關鍵：解除固定高度，讓卡片隨字數自動變長 */
     min-height: 100vh;            /* 確保卡片至少有一個螢幕的高度，保持美觀 */
@@ -368,7 +375,7 @@
                                     </div>
                                     <div class="py-2 d-flex justify-content-between">
                                         <span><i class="heart-icon fas fa-heart me-2 opacity-75"></i><strong>血型</strong></span>
-                                        <span class="opacity-75">O 型</span>
+                                        <span class="opacity-75">未知</span>
                                     </div>
                                 </div>
                             </div>
